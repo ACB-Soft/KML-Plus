@@ -102,61 +102,31 @@ const Dashboard: React.FC<Props> = ({ onStartCapture, onStakeout, onShowList, on
       <main className="w-full max-w-sm mx-auto flex flex-col space-y-2.5 md:space-y-3">
         {/* Ana Menü - Ultra kompakt ve dikey sıralı */}
         
-        {/* Yeni Ölçüm Yap */}
+        {/* Yeni Proje Oluştur */}
         <button 
           onClick={onStartCapture}
           className="w-full py-3 md:py-4 px-5 bg-emerald-600 text-white rounded-xl md:rounded-2xl shadow-lg shadow-emerald-600/30 active:scale-[0.98] transition-all flex items-center justify-between group relative overflow-hidden border border-white/10"
         >
           <div className="relative z-10 flex items-center gap-3">
             <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30">
-              <i className="fas fa-plus text-base md:text-lg text-white"></i>
+              <i className="fas fa-folder-plus text-base md:text-lg text-white"></i>
             </div>
-            <span className="text-sm md:text-base font-black tracking-tight leading-none uppercase">Yeni Ölçüm Yap</span>
+            <span className="text-sm md:text-base font-black tracking-tight leading-none uppercase">Yeni Proje Oluştur</span>
           </div>
           <i className="fas fa-chevron-right text-white/40 group-hover:translate-x-1 transition-transform text-[10px]"></i>
           <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-6 -mt-6 blur-xl"></div>
         </button>
 
-        {/* Aplikasyon Yap */}
+        {/* Projeye Devam Et */}
         <button 
           onClick={onStakeout}
           className="w-full py-3 md:py-4 px-5 bg-blue-600 text-white rounded-xl md:rounded-2xl shadow-lg shadow-blue-600/30 active:scale-[0.98] transition-all flex items-center justify-between group relative overflow-hidden border border-white/10"
         >
           <div className="relative z-10 flex items-center gap-3">
             <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30">
-              <i className="fas fa-location-crosshairs text-base md:text-lg text-white"></i>
+              <i className="fas fa-map-location-dot text-base md:text-lg text-white"></i>
             </div>
-            <span className="text-sm md:text-base font-black tracking-tight leading-none uppercase">Aplikasyon Yap</span>
-          </div>
-          <i className="fas fa-chevron-right text-white/40 group-hover:translate-x-1 transition-transform text-[10px]"></i>
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-6 -mt-6 blur-xl"></div>
-        </button>
-
-        {/* Kayıtlı Projeler */}
-        <button 
-          onClick={onShowList}
-          className="w-full py-3 md:py-4 px-5 bg-amber-500 text-white rounded-xl md:rounded-2xl shadow-lg shadow-amber-500/30 active:scale-[0.98] transition-all flex items-center justify-between group relative overflow-hidden border border-white/10"
-        >
-          <div className="relative z-10 flex items-center gap-3">
-            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30">
-              <i className="fas fa-folder-open text-base md:text-lg text-white"></i>
-            </div>
-            <span className="text-sm md:text-base font-black tracking-tight leading-none uppercase">Kayıtlı Projeler</span>
-          </div>
-          <i className="fas fa-chevron-right text-white/40 group-hover:translate-x-1 transition-transform text-[10px]"></i>
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-6 -mt-6 blur-xl"></div>
-        </button>
-
-        {/* Veri Aktar */}
-        <button 
-          onClick={onShowExport}
-          className="w-full py-3 md:py-4 px-5 bg-slate-600 text-white rounded-xl md:rounded-2xl shadow-lg shadow-slate-600/30 active:scale-[0.98] transition-all flex items-center justify-between group relative overflow-hidden border border-white/10"
-        >
-          <div className="relative z-10 flex items-center gap-3">
-            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30">
-              <i className="fas fa-file-export text-base md:text-lg text-white"></i>
-            </div>
-            <span className="text-sm md:text-base font-black tracking-tight leading-none uppercase">Veri Aktar</span>
+            <span className="text-sm md:text-base font-black tracking-tight leading-none uppercase">Projeye Devam Et</span>
           </div>
           <i className="fas fa-chevron-right text-white/40 group-hover:translate-x-1 transition-transform text-[10px]"></i>
           <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-6 -mt-6 blur-xl"></div>

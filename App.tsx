@@ -1,25 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
-import GPSCapture from './components/GPSCapture';
-import SavedLocationsList from './components/SavedLocationsList';
-import ExportUnifiedView from './components/ExportUnifiedView';
-import ResultCard from './components/ResultCard';
-import StakeoutModule from './components/StakeoutModule';
 import HelpView from './components/HelpView';
 import GlobalFooter from './components/GlobalFooter';
-import { SavedLocation, Coordinate, StakeoutPoint } from './types';
+import NewProjectView from './components/NewProjectView';
+import ProjectListView from './components/ProjectListView';
+import CadView from './components/CadView';
+import { SavedLocation, Project } from './types';
 import { geoidService } from './services/GeoidService';
 
 const App = () => {
-  type ViewType = 'onboarding' | 'dashboard' | 'capture' | 'list' | 'export' | 'result' | 'stakeout' | 'help';
+  type ViewType = 'onboarding' | 'dashboard' | 'help' | 'newProject' | 'projectList' | 'cadView';
   const [view, setView] = useState<ViewType>('onboarding');
-  const [locations, setLocations] = useState<SavedLocation[]>([]);
-  const [lastResult, setLastResult] = useState<SavedLocation | null>(null);
-  const [resultSource, setResultSource] = useState<'capture' | 'list'>('capture');
-  const [autoShowMap, setAutoShowMap] = useState(false);
-  const [isContinuing, setIsContinuing] = useState(false);
-  const [stakeoutInitialPoint, setStakeoutInitialPoint] = useState<StakeoutPoint | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjects, setSelectedProjects] = useState<Project[]>([]);
 
   // Navigation wrapper to sync with browser history
   const navigateTo = (newView: ViewType) => {
@@ -49,63 +43,51 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    const CURRENT_KEY = 'gps_locations_v1.0.0';
-    const OLD_KEY = 'gps_locations_v6.5.7';
+    const CURRENT_KEY = 'kml_projects_v1.0.3';
+    const OLD_KEY = 'kml_projects_v1.0.2';
     
-    let saved = localStorage.getItem(CURRENT_KEY);
-    if (!saved) {
+    let savedProjects = localStorage.getItem(CURRENT_KEY);
+    if (!savedProjects) {
       const oldData = localStorage.getItem(OLD_KEY);
       if (oldData) {
         localStorage.setItem(CURRENT_KEY, oldData);
-        saved = oldData;
+        savedProjects = oldData;
       }
     }
     
-    if (saved) setLocations(JSON.parse(saved));
+    if (savedProjects) {
+      setProjects(JSON.parse(savedProjects));
+    }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('gps_locations_v1.0.0', JSON.stringify(locations));
-  }, [locations]);
+    localStorage.setItem('kml_projects_v1.0.3', JSON.stringify(projects));
+  }, [projects]);
 
   const handleFinishOnboarding = () => {
-    localStorage.setItem('onboarding_v1.0.0_done', 'true');
+    localStorage.setItem('onboarding_v1.0.3_done', 'true');
     // Use replaceState so dashboard becomes the root (can't go back to onboarding)
     window.history.replaceState({ view: 'dashboard' }, '');
     setView('dashboard');
   };
 
-  const handleGPSComplete = (coord: Coordinate, folderName: string, pointName: string, description: string, coordinateSystem: string) => {
-    const newLoc: SavedLocation = {
-      ...coord,
-      id: Date.now().toString(),
-      name: pointName,
-      folderName: folderName,
-      description: description,
-      coordinateSystem: coordinateSystem
-    };
-    setLocations(prev => [newLoc, ...prev]);
-    setLastResult(newLoc);
-    setAutoShowMap(false);
-    setResultSource('capture');
-    navigateTo('result');
-  };
-
   const resetToDashboard = () => {
-    setIsContinuing(false);
+    setSelectedProjects([]);
     navigateTo('dashboard');
   };
 
-  const handleNewMeasurement = (continuing: boolean) => {
-    setIsContinuing(continuing);
-    navigateTo('capture');
+  const handleProjectCreated = (newProject: Project) => {
+    setProjects(prev => [newProject, ...prev]);
+    resetToDashboard();
   };
 
-  const handleViewOnMap = (l: SavedLocation) => {
-    setLastResult(l);
-    setAutoShowMap(true);
-    setResultSource('list');
-    navigateTo('result');
+  const handleDeleteProject = (id: string) => {
+    setProjects(prev => prev.filter(p => p.id !== id));
+  };
+
+  const handleContinueProjects = (selected: Project[]) => {
+    setSelectedProjects(selected);
+    navigateTo('cadView');
   };
 
   return (
@@ -122,10 +104,10 @@ const App = () => {
         {view === 'dashboard' && (
           <div className="flex-1 flex flex-col overflow-y-auto h-full no-scrollbar">
             <Dashboard 
-              onStartCapture={() => handleNewMeasurement(false)} 
-              onStakeout={() => navigateTo('stakeout')}
-              onShowList={() => navigateTo('list')}
-              onShowExport={() => navigateTo('export')}
+              onStartCapture={() => navigateTo('newProject')} 
+              onStakeout={() => navigateTo('projectList')}
+              onShowList={() => {}}
+              onShowExport={() => {}}
               onShowHelp={() => navigateTo('help')}
             />
             <GlobalFooter showAd={true} />
@@ -136,87 +118,27 @@ const App = () => {
           <HelpView onBack={resetToDashboard} />
         )}
 
-        {view === 'stakeout' && (
-          <StakeoutModule 
-            onBack={() => {
-              setStakeoutInitialPoint(null);
-              resetToDashboard();
-            }} 
-            initialPoint={stakeoutInitialPoint}
+        {view === 'newProject' && (
+          <NewProjectView 
+            onBack={resetToDashboard}
+            onProjectCreated={handleProjectCreated}
           />
         )}
 
-        {view === 'capture' && (
-          <div className="flex-1 flex flex-col overflow-y-auto h-full">
-            <GPSCapture 
-              existingLocations={locations}
-              onComplete={handleGPSComplete}
-              onCancel={resetToDashboard}
-              isContinuing={isContinuing}
-            />
-          </div>
+        {view === 'projectList' && (
+          <ProjectListView 
+            projects={projects}
+            onBack={resetToDashboard}
+            onContinue={handleContinueProjects}
+            onDeleteProject={handleDeleteProject}
+          />
         )}
 
-        {view === 'list' && (
-          <div className="flex-1 flex flex-col animate-in h-full overflow-y-auto no-scrollbar bg-[#F8FAFC]">
-            <header className="px-8 pt-6 pb-6 flex items-center gap-5 shrink-0 bg-white">
-              <button onClick={resetToDashboard} className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-md border border-slate-100 text-slate-800 active:scale-90 transition-all">
-                <i className="fas fa-chevron-left text-sm"></i>
-              </button>
-              <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none">Kayıtlı Projeler</h2>
-              </div>
-            </header>
-            <div className="px-8 pt-0 pb-4 w-full">
-              <div className="max-w-sm mx-auto w-full">
-                <SavedLocationsList 
-                  locations={locations} 
-                  onDelete={(id) => setLocations(prev => prev.filter(l => l.id !== id))}
-                onDeleteFolder={(name) => setLocations(prev => prev.filter(l => l.folderName !== name))}
-                onRenameFolder={(oldName, newName) => setLocations(prev => prev.map(l => 
-                  l.folderName === oldName ? { ...l, folderName: newName } : l
-                ))}
-                onBulkDelete={(ids) => setLocations(prev => prev.filter(l => !ids.includes(l.id)))}
-                onViewOnMap={handleViewOnMap}
-              />
-            </div>
-            </div>
-            <GlobalFooter showAd={true} />
-          </div>
-        )}
-
-        {view === 'export' && (
-          <div className="flex-1 flex flex-col animate-in h-full overflow-y-auto no-scrollbar bg-[#F8FAFC]">
-            <header className="px-8 pt-6 pb-6 flex items-center gap-5 shrink-0 bg-white">
-              <button onClick={resetToDashboard} className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-md border border-slate-100 text-slate-800 active:scale-90 transition-all">
-                <i className="fas fa-chevron-left text-sm"></i>
-              </button>
-              <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none">Veri Aktar</h2>
-              </div>
-            </header>
-            <div className="px-8 pt-0 pb-4">
-               <ExportUnifiedView locations={locations} />
-            </div>
-            <GlobalFooter showAd={true} />
-          </div>
-        )}
-
-        {view === 'result' && lastResult && (
-          <div className="flex-1 flex flex-col animate-in h-full overflow-y-auto no-scrollbar bg-white px-8">
-            <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full pt-8">
-              <ResultCard 
-                location={lastResult} 
-                initialShowMap={autoShowMap} 
-                onCloseMap={resultSource === 'list' ? () => navigateTo('list') : undefined}
-              />
-              <div className="mt-8 space-y-4">
-                 <button onClick={() => handleNewMeasurement(true)} className="w-full py-2.5 md:py-3.5 bg-blue-600 text-white rounded-2xl font-black shadow-2xl shadow-blue-200 active:scale-95 transition-all text-[13px] uppercase tracking-widest">YENİ NOKTA EKLE</button>
-                 <button onClick={resetToDashboard} className="w-full py-2.5 md:py-3.5 bg-slate-900 text-white rounded-2xl font-black text-[12px] uppercase tracking-widest transition-all">ÖLÇÜMÜ BİTİR</button>
-              </div>
-            </div>
-            <GlobalFooter noPadding={true} />
-          </div>
+        {view === 'cadView' && (
+          <CadView 
+            projects={selectedProjects}
+            onBack={() => navigateTo('projectList')}
+          />
         )}
 
       </div>

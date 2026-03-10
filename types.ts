@@ -34,3 +34,10 @@ export interface StakeoutGeometry {
   coordinates: { lat: number; lng: number; altitude?: number }[];
   color?: string;
 }
+
+export interface Project {
+  id: string;
+  name: string;
+  createdAt: number;
+  geojsonData?: any; // Stores the parsed KML/KMZ data as GeoJSON
+}

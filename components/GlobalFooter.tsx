@@ -1,16 +1,17 @@
 import React from 'react';
-import { FULL_BRAND } from '../version';
 
 interface Props {
   showAd?: boolean;
   noPadding?: boolean;
 }
 
-const GlobalFooter: React.FC<Props> = ({ showAd = false, noPadding = false }) => (
-  <footer className={`py-4 md:py-6 flex flex-col items-center mt-auto safe-bottom shrink-0 bg-transparent ${noPadding ? '' : 'px-8'}`}>
-    {/* Reklam Alanı */}
-    {showAd && (
-      <div className="w-full max-w-sm mb-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+const GlobalFooter: React.FC<Props> = ({ showAd = false, noPadding = false }) => {
+  if (!showAd) return null;
+
+  return (
+    <footer className={`py-4 md:py-6 flex flex-col items-center mt-auto safe-bottom shrink-0 bg-transparent ${noPadding ? '' : 'px-8'} pb-8`}>
+      {/* Reklam Alanı */}
+      <div className="w-full max-w-sm animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="w-full h-[100px] md:h-[120px] bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] flex flex-col items-center justify-center relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-slate-50 to-white opacity-50"></div>
           <div className="relative z-10 flex flex-col items-center gap-2">
@@ -25,12 +26,8 @@ const GlobalFooter: React.FC<Props> = ({ showAd = false, noPadding = false }) =>
           <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-slate-200 rounded-br-lg"></div>
         </div>
       </div>
-    )}
-
-    <p className="text-[10px] md:text-[11px] font-black text-slate-300 uppercase tracking-[0.5em] text-center w-full">
-      {FULL_BRAND}
-    </p>
-  </footer>
-);
+    </footer>
+  );
+};
 
 export default GlobalFooter;

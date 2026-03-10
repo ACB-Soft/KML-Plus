@@ -1,7 +1,7 @@
 {
   "name": "gps-plus",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,6 +14,10 @@
     "@fontsource/plus-jakarta-sans": "^5.2.8",
     "@fortawesome/fontawesome-free": "^7.2.0",
     "@tailwindcss/vite": "^4.0.0-beta.8",
+    "@tmcw/togeojson": "^7.1.2",
+    "@turf/helpers": "^7.3.4",
+    "@turf/turf": "^7.3.4",
+    "@types/geojson": "^7946.0.16",
     "@types/leaflet": "^1.9.21",
     "jszip": "^3.10.1",
     "leaflet": "^1.9.4",
