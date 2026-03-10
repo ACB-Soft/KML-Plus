@@ -1,0 +1,8 @@
+{
+  "name": "Github: KML Plus",
+  "description": "Mobil Cihazlarınız için KML/KMZ Görüntüleme Uygulaması",
+  "developer": "ACB_Soft",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
