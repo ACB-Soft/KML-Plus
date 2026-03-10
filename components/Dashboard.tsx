@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { BRAND_NAME } from '../version';
 
 interface Props {
@@ -10,52 +10,8 @@ interface Props {
 }
 
 const Dashboard: React.FC<Props> = ({ onStartCapture, onStakeout, onShowList, onShowExport, onShowHelp }) => {
-  const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-
-  React.useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        console.log('User accepted the install prompt');
-      }
-      setDeferredPrompt(null);
-    } else {
-      alert("Uygulamayı ana ekrana eklemek için tarayıcınızın 'Ana Ekrana Ekle' veya 'Paylaş' menüsünü kullanın.");
-    }
-  };
-
   return (
     <div className="flex-1 flex flex-col bg-[#F8FAFC] animate-in px-8 pt-20 md:pt-28 justify-start relative">
-      {/* System Ready Badge -> Uygulamayı İndir Button */}
-      {!isInIframe && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 h-12 flex items-center animate-in fade-in zoom-in duration-1000">
-          <button 
-            onClick={handleInstallClick}
-            className="bg-blue-50 border border-blue-100 px-4 py-2 rounded-full flex items-center gap-2 shadow-sm hover:bg-blue-100 active:scale-95 transition-all cursor-pointer"
-          >
-            <i className="fas fa-download text-blue-600 text-[10px]"></i>
-            <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest">Uygulamayı İndir</span>
-          </button>
-        </div>
-      )}
-
-      {/* Loading Overlay */}
-
       {/* Dil / Bayrak - Sol Üst Köşe */}
       <div className="absolute top-6 left-8 z-20">
         <button 

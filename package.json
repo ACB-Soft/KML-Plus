@@ -28,6 +28,7 @@
     "react-dom": "^19.2.4",
     "react-leaflet": "^5.0.0",
     "tailwindcss": "^4.0.0-beta.8",
+    "tokml": "^0.4.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
