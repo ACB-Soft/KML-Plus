@@ -31,7 +31,9 @@
   }
 
   body { 
-    @apply bg-slate-100 m-0 p-0 overflow-hidden h-[100dvh] w-screen text-slate-900 antialiased fixed flex items-center justify-center font-sans;
+    @apply bg-slate-100 m-0 p-0 overflow-hidden w-screen text-slate-900 antialiased fixed flex items-center justify-center font-sans;
+    height: 100vh;
+    height: 100dvh;
   }
 
   #root { 

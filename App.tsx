@@ -43,8 +43,8 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    const CURRENT_KEY = 'kml_projects_v1.0.5';
-    const OLD_KEY = 'kml_projects_v1.0.4';
+    const CURRENT_KEY = 'kml_projects_v1.0.6';
+    const OLD_KEY = 'kml_projects_v1.0.5';
     
     let savedProjects = localStorage.getItem(CURRENT_KEY);
     if (!savedProjects) {
@@ -61,11 +61,11 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('kml_projects_v1.0.5', JSON.stringify(projects));
+    localStorage.setItem('kml_projects_v1.0.6', JSON.stringify(projects));
   }, [projects]);
 
   const handleFinishOnboarding = () => {
-    localStorage.setItem('onboarding_v1.0.5_done', 'true');
+    localStorage.setItem('onboarding_v1.0.6_done', 'true');
     // Use replaceState so dashboard becomes the root (can't go back to onboarding)
     window.history.replaceState({ view: 'dashboard' }, '');
     setView('dashboard');
