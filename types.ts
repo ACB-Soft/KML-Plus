@@ -40,4 +40,5 @@ export interface Project {
   name: string;
   createdAt: number;
   geojsonData?: any; // Stores the parsed KML/KMZ data as GeoJSON
+  rasterLayers?: { name: string; data: ArrayBuffer; bounds?: any }[]; // Stores GeoTIFF data
 }

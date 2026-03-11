@@ -5,6 +5,8 @@ import { Project } from '../types';
 import L from 'leaflet';
 import * as turf from '@turf/turf';
 import tokml from 'tokml';
+import parseGeoraster from 'georaster';
+import GeoRasterLayer from 'georaster-layer-for-leaflet';
 import GlobalFooter from './GlobalFooter';
 
 interface Props {
@@ -13,23 +15,66 @@ interface Props {
 }
 
 // Component to handle bounds fitting
-const FitBounds: React.FC<{ geojson: any }> = ({ geojson }) => {
+const FitBounds: React.FC<{ geojson: any, rasterBounds: any[] }> = ({ geojson, rasterBounds }) => {
   const map = useMap();
   
   useEffect(() => {
+    let combinedBounds: L.LatLngBounds | null = null;
+
     if (geojson) {
       try {
-        const layer = L.geoJSON(geojson);
+        const layer = L.geoJSON(geojson as any);
         const bounds = layer.getBounds();
         if (bounds.isValid()) {
-          map.fitBounds(bounds, { padding: [50, 50] });
+          combinedBounds = bounds;
         }
       } catch (e) {
         console.error("Error fitting bounds:", e);
       }
     }
-  }, [geojson, map]);
 
+    if (rasterBounds && rasterBounds.length > 0) {
+      rasterBounds.forEach(b => {
+        if (b && b.isValid()) {
+          if (!combinedBounds) {
+            combinedBounds = L.latLngBounds(b.getSouthWest(), b.getNorthEast());
+          } else {
+            combinedBounds.extend(b);
+          }
+        }
+      });
+    }
+
+    if (combinedBounds && combinedBounds.isValid()) {
+      map.fitBounds(combinedBounds, { padding: [50, 50] });
+    }
+  }, [geojson, rasterBounds, map]);
+
+  return null;
+};
+
+// Component to render raster layers
+const RasterLayersRenderer: React.FC<{ layers: any[] }> = ({ layers }) => {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (!map || !layers || layers.length === 0) return;
+    
+    layers.forEach(layer => {
+      if (!map.hasLayer(layer)) {
+        layer.addTo(map);
+      }
+    });
+    
+    return () => {
+      layers.forEach(layer => {
+        if (map.hasLayer(layer)) {
+          map.removeLayer(layer);
+        }
+      });
+    };
+  }, [map, layers]);
+  
   return null;
 };
 
@@ -50,7 +95,11 @@ const userLocationIcon = L.divIcon({
 const CadView: React.FC<Props> = ({ projects, onBack }) => {
   const [combinedGeoJSON, setCombinedGeoJSON] = useState<any>(null);
   const [snapPoints, setSnapPoints] = useState<any>(null);
-  const [activeTool, setActiveTool] = useState<'pan' | 'distance' | 'area' | 'select' | 'draw_point' | 'draw_line' | 'draw_area'>('pan');
+  const [activeTool, setActiveTool] = useState<'pan' | 'distance' | 'area' | 'select' | 'draw_point' | 'draw_line' | 'draw_area' | 'query_point'>('pan');
+  const [isSnappingEnabled, setIsSnappingEnabled] = useState(true);
+  const [visibleLayers, setVisibleLayers] = useState<Set<string>>(new Set());
+  const [showLayersPanel, setShowLayersPanel] = useState(false);
+  const [layerStructure, setLayerStructure] = useState<any[]>([]);
   const [measurePoints, setMeasurePoints] = useState<L.LatLng[]>([]);
   const [measurementResult, setMeasurementResult] = useState<string | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<any>(null);
@@ -59,6 +108,8 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
   const [drawnFeatures, setDrawnFeatures] = useState<any[]>([]);
   const [namingFeature, setNamingFeature] = useState<any>(null);
   const [featureNameInput, setFeatureNameInput] = useState('');
+  const [rasterLayers, setRasterLayers] = useState<any[]>([]);
+  const [rasterBoundsList, setRasterBoundsList] = useState<L.LatLngBounds[]>([]);
 
   const activeToolRef = useRef(activeTool);
   useEffect(() => {
@@ -88,9 +139,20 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         type: 'FeatureCollection',
         features
       };
-      setCombinedGeoJSON(fc);
+      
+      // Extract layer structure from folder paths if available, or project names
+      const layers = Array.from(new Set(features.map(f => f.properties._projectName || 'Varsayılan')));
+      setLayerStructure(layers);
+      if (visibleLayers.size === 0) {
+        setVisibleLayers(new Set(layers));
+      }
+
+      const filteredFeatures = features.filter(f => visibleLayers.has(f.properties._projectName || 'Varsayılan'));
+      const filteredFC = { ...fc, features: filteredFeatures };
+      
+      setCombinedGeoJSON(filteredFC);
       try {
-        setSnapPoints(turf.explode(fc as any));
+        setSnapPoints(turf.explode(filteredFC as any));
       } catch (e) {
         console.error("Error exploding features for snap:", e);
       }
@@ -98,6 +160,41 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
       setCombinedGeoJSON(null);
       setSnapPoints(null);
     }
+
+    // Load raster layers
+    const loadRasters = async () => {
+      const newRasterLayers: any[] = [];
+      const newRasterBounds: L.LatLngBounds[] = [];
+      
+      for (const project of projects) {
+        if (project.rasterLayers && project.rasterLayers.length > 0) {
+          for (const rl of project.rasterLayers) {
+            try {
+              const georaster = await parseGeoraster(rl.data);
+              const layer = new GeoRasterLayer({
+                georaster: georaster,
+                opacity: 0.8,
+                resolution: 256
+              });
+              newRasterLayers.push(layer);
+              
+              const bounds = L.latLngBounds(
+                L.latLng(georaster.ymin, georaster.xmin),
+                L.latLng(georaster.ymax, georaster.xmax)
+              );
+              newRasterBounds.push(bounds);
+            } catch (err) {
+              console.error("Error parsing georaster:", err);
+            }
+          }
+        }
+      }
+      
+      setRasterLayers(newRasterLayers);
+      setRasterBoundsList(newRasterBounds);
+    };
+
+    loadRasters();
   }, [projects]);
 
   useEffect(() => {
@@ -142,7 +239,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
       }
     });
 
-    if (feature.properties) {
+    if (feature.properties && activeToolRef.current !== 'select') {
       let popupContent = `<div class="p-2">`;
       if (feature.properties.name) {
         popupContent += `<h3 class="font-bold text-sm mb-1">${feature.properties.name}</h3>`;
@@ -186,7 +283,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         let finalLatLng = e.latlng;
         
         // Snapping logic
-        if (snapPoints) {
+        if (snapPoints && isSnappingEnabled) {
           const clickPt = turf.point([e.latlng.lng, e.latlng.lat]);
           const nearest = turf.nearestPoint(clickPt, snapPoints);
           if (nearest && nearest.geometry) {
@@ -214,6 +311,22 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
           setFeatureNameInput('Yeni Nokta');
           return;
         }
+
+        if (activeTool === 'query_point') {
+          const newFeature = {
+            type: 'Feature',
+            properties: { 
+              name: 'Koordinat Bilgisi',
+              description: `Enlem: ${finalLatLng.lat.toFixed(6)}<br/>Boylam: ${finalLatLng.lng.toFixed(6)}`
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: [finalLatLng.lng, finalLatLng.lat]
+            }
+          };
+          setSelectedFeature(newFeature);
+          return;
+        }
         
         setMeasurePoints(prev => [...prev, finalLatLng]);
       },
@@ -225,11 +338,21 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
     return null;
   };
 
-  const handleToolChange = (tool: 'pan' | 'distance' | 'area' | 'select' | 'draw_point' | 'draw_line' | 'draw_area') => {
+  const handleToolChange = (tool: 'pan' | 'distance' | 'area' | 'select' | 'draw_point' | 'draw_line' | 'draw_area' | 'query_point') => {
     setActiveTool(tool);
     setMeasurePoints([]);
     setMeasurementResult(null);
     setSelectedFeature(null);
+  };
+
+  const toggleLayer = (layerName: string) => {
+    const newVisible = new Set(visibleLayers);
+    if (newVisible.has(layerName)) {
+      newVisible.delete(layerName);
+    } else {
+      newVisible.add(layerName);
+    }
+    setVisibleLayers(newVisible);
   };
 
   const handleFinishDrawing = () => {
@@ -286,20 +409,38 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
 
   const handleFitBounds = () => {
     if (mapInstance) {
+      let combinedBounds: L.LatLngBounds | null = null;
+
       const allFeatures = [];
       if (combinedGeoJSON?.features) allFeatures.push(...combinedGeoJSON.features);
       if (drawnFeatures.length > 0) allFeatures.push(...drawnFeatures);
       
       if (allFeatures.length > 0) {
         try {
-          const layer = L.geoJSON({ type: 'FeatureCollection', features: allFeatures });
+          const layer = L.geoJSON({ type: 'FeatureCollection', features: allFeatures } as any);
           const bounds = layer.getBounds();
           if (bounds.isValid()) {
-            mapInstance.fitBounds(bounds, { padding: [50, 50] });
+            combinedBounds = bounds;
           }
         } catch (e) {
           console.error("Error fitting bounds:", e);
         }
+      }
+
+      if (rasterBoundsList && rasterBoundsList.length > 0) {
+        rasterBoundsList.forEach(b => {
+          if (b && b.isValid()) {
+            if (!combinedBounds) {
+              combinedBounds = L.latLngBounds(b.getSouthWest(), b.getNorthEast());
+            } else {
+              combinedBounds.extend(b);
+            }
+          }
+        });
+      }
+
+      if (combinedBounds && combinedBounds.isValid()) {
+        mapInstance.fitBounds(combinedBounds, { padding: [50, 50] });
       }
     }
   };
@@ -314,7 +455,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
       return;
     }
 
-    const fc = { type: 'FeatureCollection', features: allFeatures };
+    const fc: any = { type: 'FeatureCollection', features: allFeatures };
     
     try {
       const kmlString = tokml(fc, {
@@ -364,10 +505,10 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         <button 
           onClick={() => handleToolChange('pan')} 
           className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'pan' ? 'bg-blue-600 text-white scale-110' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white'}`}
-          title="Kaydır"
+          title="Ekranı Kaydır"
         >
           <i className="fas fa-hand-paper text-sm"></i>
-          <span className="text-[8px] font-bold leading-none">Kaydır</span>
+          <span className="text-[7px] font-bold leading-[1.1] text-center">Ekranı<br/>Kaydır</span>
         </button>
         <button 
           onClick={() => handleToolChange('select')} 
@@ -375,23 +516,31 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
           title="Obje Seç"
         >
           <i className="fas fa-mouse-pointer text-sm"></i>
-          <span className="text-[8px] font-bold leading-none">Seç</span>
+          <span className="text-[7px] font-bold leading-[1.1] text-center">Obje<br/>Seç</span>
+        </button>
+        <button 
+          onClick={() => handleToolChange('query_point')} 
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'query_point' ? 'bg-indigo-600 text-white scale-110' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white'}`}
+          title="Koordinat Sor"
+        >
+          <i className="fas fa-crosshairs text-sm"></i>
+          <span className="text-[7px] font-bold leading-[1.1] text-center">Koordinat<br/>Sor</span>
         </button>
         <button 
           onClick={() => handleToolChange('distance')} 
           className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'distance' ? 'bg-emerald-600 text-white scale-110' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white'}`}
-          title="Mesafe Ölç"
+          title="Mesafe Hesapla"
         >
           <i className="fas fa-ruler text-sm"></i>
-          <span className="text-[8px] font-bold leading-none">Mesafe</span>
+          <span className="text-[7px] font-bold leading-[1.1] text-center">Mesafe<br/>Hesapla</span>
         </button>
         <button 
           onClick={() => handleToolChange('area')} 
           className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'area' ? 'bg-amber-500 text-white scale-110' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white'}`}
-          title="Alan Ölç"
+          title="Alan Hesapla"
         >
           <i className="fas fa-draw-polygon text-sm"></i>
-          <span className="text-[8px] font-bold leading-none">Alan</span>
+          <span className="text-[7px] font-bold leading-[1.1] text-center">Alan<br/>Hesapla</span>
         </button>
         
         <div className="w-12 h-px bg-slate-300/50 my-1"></div>
@@ -402,27 +551,46 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
           title="Limit Bul"
         >
           <i className="fas fa-expand text-sm"></i>
-          <span className="text-[8px] font-bold leading-none">Limit</span>
+          <span className="text-[7px] font-bold leading-[1.1] text-center">Limit<br/>Bul</span>
         </button>
         <button 
           onClick={handleLocate} 
           className="w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white hover:text-blue-600"
-          title="Konumumu Bul"
+          title="Mevcut Konum"
         >
           <i className="fas fa-location-crosshairs text-sm"></i>
-          <span className="text-[8px] font-bold leading-none">Konum</span>
+          <span className="text-[7px] font-bold leading-[1.1] text-center">Mevcut<br/>Konum</span>
+        </button>
+        <button 
+          onClick={() => setShowLayersPanel(!showLayersPanel)} 
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${showLayersPanel ? 'bg-slate-800 text-white' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white hover:text-blue-600'}`}
+          title="Katmanlar"
+        >
+          <i className="fas fa-layer-group text-sm"></i>
+          <span className="text-[7px] font-bold leading-[1.1] text-center">Katmanlar</span>
         </button>
       </div>
 
       {/* Draw Tools Panel - Right Side */}
       <div className="absolute top-24 right-4 z-[1000] flex flex-col gap-3 pointer-events-auto">
         <button 
+          onClick={() => setIsSnappingEnabled(!isSnappingEnabled)} 
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${isSnappingEnabled ? 'bg-orange-600 text-white' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white'}`}
+          title="Obje Yakala"
+        >
+          <i className={`fas ${isSnappingEnabled ? 'fa-magnet' : 'fa-magnet text-slate-300'} text-sm`}></i>
+          <span className="text-[7px] font-bold leading-[1.1] text-center">Obje<br/>Yakala</span>
+        </button>
+
+        <div className="w-12 h-px bg-slate-300/50 my-1"></div>
+
+        <button 
           onClick={() => handleToolChange('draw_point')} 
           className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'draw_point' ? 'bg-violet-600 text-white scale-110' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white'}`}
           title="Nokta Ekle"
         >
           <i className="fas fa-map-pin text-sm"></i>
-          <span className="text-[8px] font-bold leading-none">Nokta</span>
+          <span className="text-[7px] font-bold leading-[1.1] text-center">Nokta<br/>Ekle</span>
         </button>
         <button 
           onClick={() => handleToolChange('draw_line')} 
@@ -430,7 +598,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
           title="Çizgi Ekle"
         >
           <i className="fas fa-project-diagram text-sm"></i>
-          <span className="text-[8px] font-bold leading-none">Çizgi</span>
+          <span className="text-[7px] font-bold leading-[1.1] text-center">Çizgi<br/>Ekle</span>
         </button>
         <button 
           onClick={() => handleToolChange('draw_area')} 
@@ -438,7 +606,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
           title="Alan Ekle"
         >
           <i className="fas fa-draw-polygon text-sm"></i>
-          <span className="text-[8px] font-bold leading-none">Alan</span>
+          <span className="text-[7px] font-bold leading-[1.1] text-center">Alan<br/>Ekle</span>
         </button>
 
         {(activeTool === 'draw_line' || activeTool === 'draw_area') && measurePoints.length > 0 && (
@@ -477,9 +645,10 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
                 style={geojsonStyle}
                 onEachFeature={onEachFeature}
               />
-              <FitBounds geojson={combinedGeoJSON} />
             </>
           )}
+          <FitBounds geojson={combinedGeoJSON} rasterBounds={rasterBoundsList} />
+          <RasterLayersRenderer layers={rasterLayers} />
 
           {/* Drawn Features */}
           {drawnFeatures.length > 0 && (
@@ -520,27 +689,51 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
 
         </MapContainer>
 
-        {/* Selected Feature Overlay (Bottom Sheet) */}
-        {activeTool === 'select' && selectedFeature && (
-          <div className="absolute bottom-[60px] left-0 right-0 z-[1000] pointer-events-auto animate-in slide-in-from-bottom-8">
-            <div className="bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-slate-100 p-6 pb-8">
-              <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-5"></div>
+        {/* Selected Feature Overlay (Fixed Position) */}
+        {(activeTool === 'select' || activeTool === 'query_point') && selectedFeature && (
+          <div className="absolute top-24 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100%-2rem)] max-w-sm pointer-events-auto animate-in fade-in slide-in-from-top-4">
+            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 p-4">
               <div className="flex justify-between items-start mb-2">
-                <h3 className="font-black text-slate-900 text-lg">{selectedFeature.properties?.name || 'İsimsiz Obje'}</h3>
-                <button onClick={() => setSelectedFeature(null)} className="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors">
-                  <i className="fas fa-times"></i>
+                <h3 className="font-black text-slate-900 text-base">{selectedFeature.properties?.name || 'İsimsiz Obje'}</h3>
+                <button onClick={() => setSelectedFeature(null)} className="text-slate-400 hover:text-slate-600 w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors">
+                  <i className="fas fa-times text-xs"></i>
                 </button>
               </div>
               {selectedFeature.properties?._projectName && (
-                <p className="text-xs font-bold text-purple-600 mb-4 uppercase tracking-wider">{selectedFeature.properties._projectName}</p>
+                <p className="text-[10px] font-bold text-purple-600 mb-2 uppercase tracking-wider">{selectedFeature.properties._projectName}</p>
               )}
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 max-h-40 overflow-y-auto no-scrollbar">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 max-h-32 overflow-y-auto no-scrollbar">
                 {selectedFeature.properties?.description ? (
-                  <p className="text-sm text-slate-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: selectedFeature.properties.description }}></p>
+                  <p className="text-xs text-slate-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: selectedFeature.properties.description }}></p>
                 ) : (
-                  <p className="text-sm text-slate-400 italic">Bu obje için açıklama bulunmuyor.</p>
+                  <p className="text-xs text-slate-400 italic">Bu obje için açıklama bulunmuyor.</p>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Layers Panel */}
+        {showLayersPanel && (
+          <div className="absolute top-24 left-20 z-[1001] w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 animate-in slide-in-from-left-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-black text-slate-900 text-sm uppercase tracking-tight">Katmanlar</h3>
+              <button onClick={() => setShowLayersPanel(false)} className="text-slate-400 hover:text-slate-600">
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="space-y-2 max-h-64 overflow-y-auto no-scrollbar">
+              {layerStructure.map(layer => (
+                <div key={layer} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors">
+                  <span className="text-xs font-bold text-slate-700 truncate mr-2">{layer}</span>
+                  <button 
+                    onClick={() => toggleLayer(layer)}
+                    className={`w-10 h-6 rounded-full transition-all relative ${visibleLayers.has(layer) ? 'bg-blue-600' : 'bg-slate-200'}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${visibleLayers.has(layer) ? 'left-5' : 'left-1'}`}></div>
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         )}

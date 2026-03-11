@@ -31,15 +31,39 @@ const Onboarding: React.FC<Props> = ({ onFinish }) => {
         </div>
       </div>
 
-      <div className="flex flex-col items-center w-full max-w-sm mx-auto space-y-4 md:space-y-5">
-        <div className="w-full flex gap-4 md:gap-5 text-left items-center p-4 md:p-6 bg-slate-50/50 rounded-[1.8rem] border border-slate-100">
-          <div className="w-10 h-10 md:w-12 md:h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shrink-0">
-            <i className="fas fa-database text-lg md:text-xl"></i>
+      <div className="flex flex-col items-center w-full max-w-sm mx-auto space-y-2 md:space-y-3">
+        <div className="w-full flex gap-3 md:gap-4 text-left items-center p-3 md:p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
+          <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 shrink-0">
+            <i className="fas fa-location-dot text-sm md:text-base"></i>
           </div>
-          <div className="space-y-1">
-            <h4 className="text-[11px] md:text-[12px] font-black text-slate-900 uppercase tracking-widest">Güvenli Depolama</h4>
-            <p className="text-[12px] md:text-[13px] text-slate-500 font-bold leading-snug">
-              Verileriniz yalnızca yerel cihazınızda saklanır.
+          <div className="space-y-0.5">
+            <h4 className="text-[10px] md:text-[11px] font-black text-slate-900 uppercase tracking-wider">Konum Erişimi</h4>
+            <p className="text-[11px] md:text-[12px] text-slate-500 font-bold leading-tight">
+              GPS verilerini kullanarak konum ve yükseklik bilgisi üretmek için gereklidir.
+            </p>
+          </div>
+        </div>
+
+        <div className="w-full flex gap-3 md:gap-4 text-left items-center p-3 md:p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
+          <div className="w-8 h-8 md:w-10 md:h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 shrink-0">
+            <i className="fas fa-file-export text-sm md:text-base"></i>
+          </div>
+          <div className="space-y-0.5">
+            <h4 className="text-[10px] md:text-[11px] font-black text-slate-900 uppercase tracking-wider">Dosya Erişimi</h4>
+            <p className="text-[11px] md:text-[12px] text-slate-500 font-bold leading-tight">
+              Verileri içeri ve dışarı aktarmak için gereklidir. Verileriniz sadece yerel cihazınızda depolanır.
+            </p>
+          </div>
+        </div>
+
+        <div className="w-full flex gap-3 md:gap-4 text-left items-center p-3 md:p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
+          <div className="w-8 h-8 md:w-10 md:h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600 shrink-0">
+            <i className="fas fa-globe text-sm md:text-base"></i>
+          </div>
+          <div className="space-y-0.5">
+            <h4 className="text-[10px] md:text-[11px] font-black text-slate-900 uppercase tracking-wider">İnternet Erişimi</h4>
+            <p className="text-[11px] md:text-[12px] text-slate-500 font-bold leading-tight">
+              Uydu görüntüsü altlıklarının yüklenebilmesi için gereklidir.
             </p>
           </div>
         </div>

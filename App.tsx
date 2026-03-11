@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import localforage from 'localforage';
 import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
 import HelpView from './components/HelpView';
@@ -46,22 +47,37 @@ const App = () => {
     const CURRENT_KEY = 'kml_projects_v1.0.6';
     const OLD_KEY = 'kml_projects_v1.0.5';
     
-    let savedProjects = localStorage.getItem(CURRENT_KEY);
-    if (!savedProjects) {
-      const oldData = localStorage.getItem(OLD_KEY);
-      if (oldData) {
-        localStorage.setItem(CURRENT_KEY, oldData);
-        savedProjects = oldData;
+    const loadProjects = async () => {
+      try {
+        let savedProjects = await localforage.getItem<Project[]>(CURRENT_KEY);
+        
+        if (!savedProjects) {
+          // Try to migrate from localStorage if localforage is empty
+          const oldLocalData = localStorage.getItem(OLD_KEY);
+          if (oldLocalData) {
+            savedProjects = JSON.parse(oldLocalData);
+            await localforage.setItem(CURRENT_KEY, savedProjects);
+          }
+        }
+        
+        if (savedProjects) {
+          setProjects(savedProjects);
+        }
+      } catch (e) {
+        console.error("Projeler yüklenirken hata oluştu:", e);
       }
-    }
+    };
     
-    if (savedProjects) {
-      setProjects(JSON.parse(savedProjects));
-    }
+    loadProjects();
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('kml_projects_v1.0.6', JSON.stringify(projects));
+    // Sadece projeler değiştiğinde kaydet
+    if (projects.length > 0) {
+      localforage.setItem('kml_projects_v1.0.6', projects).catch(e => {
+        console.error("Projeler kaydedilirken hata oluştu:", e);
+      });
+    }
   }, [projects]);
 
   const handleFinishOnboarding = () => {

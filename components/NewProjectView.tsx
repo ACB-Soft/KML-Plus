@@ -40,6 +40,11 @@ const NewProjectView: React.FC<Props> = ({ onBack, onProjectCreated }) => {
   };
 
   const handleCreate = async () => {
+    if (!file) {
+      setError('Lütfen bir KML veya KMZ dosyası seçin.');
+      return;
+    }
+
     if (!projectName.trim()) {
       setError('Lütfen bir proje adı girin.');
       return;
@@ -50,6 +55,7 @@ const NewProjectView: React.FC<Props> = ({ onBack, onProjectCreated }) => {
 
     try {
       let geojsonData = null;
+      let rasterLayers: { name: string; data: ArrayBuffer }[] = [];
 
       if (file) {
         const ext = file.name.split('.').pop()?.toLowerCase();
@@ -59,12 +65,27 @@ const NewProjectView: React.FC<Props> = ({ onBack, onProjectCreated }) => {
           
           // Find the first .kml file in the KMZ
           const kmlFile = Object.values(loadedZip.files).find(f => f.name.toLowerCase().endsWith('.kml'));
-          if (!kmlFile) {
-            throw new Error('KMZ dosyası içinde KML bulunamadı.');
+          if (kmlFile) {
+            const kmlText = await kmlFile.async('text');
+            geojsonData = parseKML(kmlText);
           }
           
-          const kmlText = await kmlFile.async('text');
-          geojsonData = parseKML(kmlText);
+          // Find all .tif or .tiff files in the KMZ
+          const tiffFiles = Object.values(loadedZip.files).filter(f => 
+            f.name.toLowerCase().endsWith('.tif') || f.name.toLowerCase().endsWith('.tiff')
+          );
+          
+          for (const tiffFile of tiffFiles) {
+            const arrayBuffer = await tiffFile.async('arraybuffer');
+            rasterLayers.push({
+              name: tiffFile.name,
+              data: arrayBuffer
+            });
+          }
+          
+          if (!kmlFile && tiffFiles.length === 0) {
+            throw new Error('KMZ dosyası içinde geçerli KML veya GeoTIFF bulunamadı.');
+          }
         } else if (ext === 'kml') {
           const kmlText = await file.text();
           geojsonData = parseKML(kmlText);
@@ -75,7 +96,8 @@ const NewProjectView: React.FC<Props> = ({ onBack, onProjectCreated }) => {
         id: Date.now().toString(),
         name: projectName.trim(),
         createdAt: Date.now(),
-        geojsonData
+        geojsonData,
+        rasterLayers: rasterLayers.length > 0 ? rasterLayers : undefined
       };
 
       onProjectCreated(newProject);
@@ -106,18 +128,7 @@ const NewProjectView: React.FC<Props> = ({ onBack, onProjectCreated }) => {
         )}
 
         <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Proje Adı</label>
-          <input 
-            type="text" 
-            value={projectName}
-            onChange={(e) => setProjectName(e.target.value)}
-            placeholder="Örn: Parsel 123"
-            className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">KML / KMZ Dosyası (İsteğe Bağlı)</label>
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">KML / KMZ Dosyası (Zorunlu)</label>
           
           <div 
             onClick={() => fileInputRef.current?.click()}
@@ -153,6 +164,17 @@ const NewProjectView: React.FC<Props> = ({ onBack, onProjectCreated }) => {
               </>
             )}
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Proje Adı</label>
+          <input 
+            type="text" 
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+            placeholder="Örn: Parsel 123"
+            className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+          />
         </div>
 
         <div className="mt-auto pt-6">
