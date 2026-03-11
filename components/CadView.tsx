@@ -15,14 +15,16 @@ interface Props {
 // Component to handle bounds fitting
 const FitBounds: React.FC<{ geojson: any }> = ({ geojson }) => {
   const map = useMap();
+  const hasFittedRef = useRef(false);
   
   useEffect(() => {
-    if (geojson) {
+    if (geojson && !hasFittedRef.current) {
       try {
         const layer = L.geoJSON(geojson as any);
         const bounds = layer.getBounds();
         if (bounds.isValid()) {
           map.fitBounds(bounds, { padding: [50, 50] });
+          hasFittedRef.current = true;
         }
       } catch (e) {
         console.error("Error fitting bounds:", e);
@@ -32,6 +34,18 @@ const FitBounds: React.FC<{ geojson: any }> = ({ geojson }) => {
 
   return null;
 };
+
+const createGoogleEarthIcon = (color: string) => L.divIcon({
+  className: 'google-earth-icon',
+  html: `
+    <div style="position: relative; display: flex; flex-direction: column; align-items: center;">
+      <div style="background-color: ${color}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5); z-index: 2;"></div>
+      <div style="width: 2px; height: 10px; background-color: white; margin-top: -2px; box-shadow: 1px 0 2px rgba(0,0,0,0.3); z-index: 1;"></div>
+    </div>
+  `,
+  iconSize: [12, 20],
+  iconAnchor: [6, 20]
+});
 
 const createCustomIcon = (color: string) => L.divIcon({
   className: 'custom-div-icon',
@@ -71,11 +85,10 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
 
   useEffect(() => {
     // Combine all GeoJSON data from selected projects
-    const features: any[] = [];
+    const allFeatures: any[] = [];
     
     projects.forEach(project => {
       if (project.geojsonData && project.geojsonData.features) {
-        // Add project name to properties for potential styling/tooltips
         const projectFeatures = project.geojsonData.features.map((f: any) => ({
           ...f,
           properties: {
@@ -83,37 +96,42 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
             _projectName: project.name
           }
         }));
-        features.push(...projectFeatures);
+        allFeatures.push(...projectFeatures);
       }
     });
 
-    if (features.length > 0) {
-      const fc = {
-        type: 'FeatureCollection',
-        features
-      };
-      
-      // Extract layer structure from folder paths if available, or project names
-      const layers = Array.from(new Set(features.map(f => f.properties._projectName || 'Varsayılan')));
-      setLayerStructure(layers);
-      if (visibleLayers.size === 0) {
-        setVisibleLayers(new Set(layers));
-      }
+    const layers = Array.from(new Set(allFeatures.map(f => f.properties._projectName || 'Varsayılan')));
+    setLayerStructure(layers);
 
-      const filteredFeatures = features.filter(f => visibleLayers.has(f.properties._projectName || 'Varsayılan'));
-      const filteredFC = { ...fc, features: filteredFeatures };
-      
-      setCombinedGeoJSON(filteredFC);
-      try {
-        setSnapPoints(turf.explode(filteredFC as any));
-      } catch (e) {
-        console.error("Error exploding features for snap:", e);
-      }
-    } else {
-      setCombinedGeoJSON(null);
-      setSnapPoints(null);
+    // Initialize visible layers if not set
+    if (visibleLayers.size === 0 && layers.length > 0) {
+      setVisibleLayers(new Set(layers));
     }
-  }, [projects, visibleLayers]);
+
+    // Filter features based on visibility
+    // If visibleLayers is empty but we have layers, it means we're in the middle of an update
+    // In that case, show all features for the first render
+    const effectiveVisibleLayers = visibleLayers.size === 0 ? new Set(layers) : visibleLayers;
+    const filteredFeatures = allFeatures.filter(f => effectiveVisibleLayers.has(f.properties._projectName || 'Varsayılan'));
+    
+    const filteredFC = {
+      type: 'FeatureCollection',
+      features: filteredFeatures
+    };
+    
+    setCombinedGeoJSON(filteredFC);
+    
+    // Update snap points
+    try {
+      const allForSnap = {
+        type: 'FeatureCollection',
+        features: [...filteredFeatures, ...drawnFeatures]
+      };
+      setSnapPoints(turf.explode(allForSnap as any));
+    } catch (e) {
+      console.error("Error exploding features for snap:", e);
+    }
+  }, [projects, visibleLayers, drawnFeatures]);
 
   useEffect(() => {
     if (measurePoints.length < 2) {
@@ -151,35 +169,28 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
       if (activeToolRef.current === 'select') {
         L.DomEvent.stopPropagation(e);
         setSelectedFeature(feature);
-        if ('closePopup' in layer) {
-          (layer as any).closePopup();
-        }
       }
     });
-
-    if (feature.properties && activeToolRef.current !== 'select') {
-      let popupContent = `<div class="p-2">`;
-      if (feature.properties.name) {
-        popupContent += `<h3 class="font-bold text-sm mb-1">${feature.properties.name}</h3>`;
-      }
-      if (feature.properties._projectName) {
-        popupContent += `<p class="text-xs text-slate-500">Proje: ${feature.properties._projectName}</p>`;
-      }
-      if (feature.properties.description) {
-        popupContent += `<p class="text-xs mt-1">${feature.properties.description}</p>`;
-      }
-      popupContent += `</div>`;
-      layer.bindPopup(popupContent);
-    }
   };
 
   const geojsonStyle = (feature: any) => {
+    // Google Earth default or KML properties
+    // GE often uses yellow (#ffff00) for lines by default if not specified
+    const strokeColor = feature?.properties?.stroke || feature?.properties?.['line-color'] || '#ffff00';
+    const strokeWidth = feature?.properties?.['stroke-width'] || feature?.properties?.['line-width'] || 2.5;
+    const strokeOpacity = feature?.properties?.['stroke-opacity'] || feature?.properties?.['line-opacity'] || 1;
+    
+    const fillColor = feature?.properties?.fill || feature?.properties?.['poly-color'] || '#3b82f6';
+    const fillOpacity = feature?.properties?.['fill-opacity'] || feature?.properties?.['poly-opacity'] || 0.35;
+
     return {
-      color: feature?.properties?.stroke || '#3b82f6',
-      weight: feature?.properties?.['stroke-width'] || 3,
-      opacity: feature?.properties?.['stroke-opacity'] || 0.8,
-      fillColor: feature?.properties?.fill || '#3b82f6',
-      fillOpacity: feature?.properties?.['fill-opacity'] || 0.2,
+      color: strokeColor,
+      weight: strokeWidth,
+      opacity: strokeOpacity,
+      fillColor: fillColor,
+      fillOpacity: fillOpacity,
+      lineCap: 'round',
+      lineJoin: 'round'
     };
   };
 
@@ -554,13 +565,16 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
           <MapEvents />
 
           {combinedGeoJSON && (
-            <>
-              <GeoJSON 
-                data={combinedGeoJSON} 
-                style={geojsonStyle}
-                onEachFeature={onEachFeature}
-              />
-            </>
+            <GeoJSON 
+              key={`geojson-${projects.map(p => p.id).join('-')}-${visibleLayers.size}-${drawnFeatures.length}`}
+              data={combinedGeoJSON} 
+              style={geojsonStyle}
+              onEachFeature={onEachFeature}
+              pointToLayer={(feature, latlng) => {
+                const color = feature.properties?.stroke || feature.properties?.['marker-color'] || '#ffff00';
+                return L.marker(latlng, { icon: createGoogleEarthIcon(color) });
+              }}
+            />
           )}
           <FitBounds geojson={combinedGeoJSON} />
 
@@ -603,39 +617,37 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
 
         </MapContainer>
 
-        {/* Selected Feature Overlay (Fixed Position) */}
+        {/* Selected Feature Overlay (Bottom Position) */}
         {(activeTool === 'select' || activeTool === 'query_point') && selectedFeature && (
-          <div className="absolute top-24 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100%-2rem)] max-w-sm pointer-events-auto animate-in fade-in slide-in-from-top-4">
-            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 p-4">
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex-1">
-                  <h3 className="font-black text-slate-900 text-base">{selectedFeature.properties?.name || 'İsimsiz Obje'}</h3>
+          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100%-2rem)] max-w-sm pointer-events-auto animate-in slide-in-from-bottom-4">
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200 p-3 flex flex-col gap-2">
+              <div className="flex justify-between items-center">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-black text-slate-900 text-sm truncate">{selectedFeature.properties?.name || 'İsimsiz Obje'}</h3>
                   {selectedFeature.properties?._projectName && (
-                    <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wider">{selectedFeature.properties._projectName}</p>
+                    <p className="text-[9px] font-bold text-blue-600 uppercase tracking-wider truncate">{selectedFeature.properties._projectName}</p>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   {selectedFeature.properties?._isDrawn && (
                     <button 
                       onClick={() => handleDeleteFeature(selectedFeature)}
-                      className="text-red-500 hover:text-red-700 w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors"
+                      className="text-red-500 hover:text-red-700 w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors"
                       title="Sil"
                     >
-                      <i className="fas fa-trash-alt text-sm"></i>
+                      <i className="fas fa-trash-alt text-xs"></i>
                     </button>
                   )}
-                  <button onClick={() => setSelectedFeature(null)} className="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors">
-                    <i className="fas fa-times text-sm"></i>
+                  <button onClick={() => setSelectedFeature(null)} className="text-slate-400 hover:text-slate-600 w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors">
+                    <i className="fas fa-times text-xs"></i>
                   </button>
                 </div>
               </div>
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 max-h-32 overflow-y-auto no-scrollbar">
-                {selectedFeature.properties?.description ? (
-                  <p className="text-xs text-slate-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: selectedFeature.properties.description }}></p>
-                ) : (
-                  <p className="text-xs text-slate-400 italic">Bu obje için açıklama bulunmuyor.</p>
-                )}
-              </div>
+              {selectedFeature.properties?.description && (
+                <div className="bg-slate-50/50 p-2 rounded-xl border border-slate-100/50 max-h-24 overflow-y-auto no-scrollbar">
+                  <p className="text-[11px] text-slate-700 leading-tight" dangerouslySetInnerHTML={{ __html: selectedFeature.properties.description }}></p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -652,10 +664,30 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
             <div className="space-y-2 max-h-64 overflow-y-auto no-scrollbar">
               {layerStructure.map(layer => (
                 <div key={layer} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors">
-                  <span className="text-xs font-bold text-slate-700 truncate mr-2">{layer}</span>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <button 
+                      onClick={() => {
+                        if (mapInstance && combinedGeoJSON) {
+                          const layerFeatures = combinedGeoJSON.features.filter((f: any) => (f.properties._projectName || 'Varsayılan') === layer);
+                          if (layerFeatures.length > 0) {
+                            const layerGroup = L.geoJSON({ type: 'FeatureCollection', features: layerFeatures } as any);
+                            const bounds = layerGroup.getBounds();
+                            if (bounds.isValid()) {
+                              mapInstance.fitBounds(bounds, { padding: [50, 50] });
+                            }
+                          }
+                        }
+                      }}
+                      className="text-slate-400 hover:text-blue-600 transition-colors"
+                      title="Katmana Odaklan"
+                    >
+                      <i className="fas fa-search-location"></i>
+                    </button>
+                    <span className="text-xs font-bold text-slate-700 truncate">{layer}</span>
+                  </div>
                   <button 
                     onClick={() => toggleLayer(layer)}
-                    className={`w-10 h-6 rounded-full transition-all relative ${visibleLayers.has(layer) ? 'bg-blue-600' : 'bg-slate-200'}`}
+                    className={`w-10 h-6 rounded-full transition-all relative shrink-0 ${visibleLayers.has(layer) ? 'bg-blue-600' : 'bg-slate-200'}`}
                   >
                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${visibleLayers.has(layer) ? 'left-5' : 'left-1'}`}></div>
                   </button>
@@ -666,7 +698,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         )}
 
         {/* Measurement Result Overlay */}
-        {measurementResult && (
+        {measurementResult && !selectedFeature && (
           <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[1000] pointer-events-auto animate-in slide-in-from-bottom-4">
             <button 
               onClick={() => setMeasurePoints([])} 

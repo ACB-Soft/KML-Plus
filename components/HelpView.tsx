@@ -74,19 +74,17 @@ const HelpView: React.FC<Props> = ({ onBack }) => {
                 <br/><br/>
                 • <b>Kaydır (El İkonu):</b> Haritayı serbestçe kaydırmanızı sağlar.
                 <br/>
-                • <b>Obje Seç (İmleç İkonu):</b> Haritadaki KML objelerine tıklayarak isim, proje ve açıklama detaylarını görebilirsiniz.
+                • <b>Obje Seç (İmleç İkonu):</b> Haritadaki KML objelerine tıklayarak detayları ekranın alt kısmında görebilirsiniz.
+                <br/>
+                • <b>Koordinat Sor (Hedef İkonu):</b> Haritaya tıkladığınız noktanın enlem ve boylam bilgilerini verir.
                 <br/>
                 • <b>Mesafe Ölç (Cetvel İkonu):</b> Haritaya tıklayarak noktalar arası mesafeyi ölçebilirsiniz.
                 <br/>
                 • <b>Alan Ölç (Çokgen İkonu):</b> Haritaya en az 3 nokta ekleyerek kapalı bir alanın yüzölçümünü hesaplayabilirsiniz.
                 <br/>
-                • <b>Nokta, Çizgi ve Alan Ekleme:</b> Sağ taraftaki araçları kullanarak haritaya yeni objeler çizebilirsiniz.
+                • <b>Katman Yönetimi:</b> Katmanlar panelinden projeleri açıp kapatabilir, büyüteç ikonu ile ilgili katmana odaklanabilirsiniz.
                 <br/>
-                • <b>Obje Yakalama (Snapping):</b> Ölçüm yaparken veya obje çizerken, mevcut KML objelerinin köşelerine yaklaştığınızda noktalar otomatik olarak o köşeye yapışır.
-                <br/>
-                • <b>Nokta Kaydırma:</b> Eklediğiniz ölçüm veya çizim noktalarını basılı tutup sürükleyerek yerlerini değiştirebilirsiniz.
-                <br/>
-                • <b>Konumumu Bul:</b> Cihazınızın GPS'ini kullanarak haritada bulunduğunuz konuma odaklanabilirsiniz.
+                • <b>Obje Yakalama (Snapping):</b> Mevcut KML objelerinin köşelerine otomatik olarak kilitlenmenizi sağlar.
               </p>
             </div>
           </div>
@@ -111,18 +109,25 @@ const HelpView: React.FC<Props> = ({ onBack }) => {
         <section className="space-y-4 pb-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
-              <i className="fas fa-code"></i>
+              <i className="fas fa-info-circle"></i>
             </div>
-            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Geliştirici</h3>
+            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Uygulama Hakkında</h3>
           </div>
-          <div className="soft-card p-6 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Yazılım & Tasarım</p>
-              <p className="text-sm font-black text-slate-900">ACB_Soft Engineering</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Sürüm</p>
-              <p className="text-sm font-black text-blue-600">{APP_VERSION}</p>
+          <div className="soft-card p-6 space-y-4">
+            <p className="text-slate-900 text-sm leading-relaxed font-medium text-justify">
+              <b>KML Plus</b>, arazi çalışmalarında ve ofis süreçlerinde KML/KMZ verilerini en hızlı ve verimli şekilde yönetmeniz için geliştirilmiş profesyonel bir CBS (Coğrafi Bilgi Sistemi) aracıdır.
+              <br/><br/>
+              Google Earth standartlarında görselleştirme, hassas ölçüm araçları ve gelişmiş obje yakalama (snapping) özellikleri ile projelerinizi mobil cihazınızdan kolayca yönetebilirsiniz.
+            </p>
+            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Yazılım & Tasarım</p>
+                <p className="text-sm font-black text-slate-900">ACB_Soft Engineering</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Sürüm</p>
+                <p className="text-sm font-black text-blue-600">{APP_VERSION}</p>
+              </div>
             </div>
           </div>
         </section>

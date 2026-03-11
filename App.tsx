@@ -44,18 +44,17 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    const CURRENT_KEY = 'kml_projects_v1.0.6';
-    const OLD_KEY = 'kml_projects_v1.0.5';
+    const CURRENT_KEY = 'kml_projects_v1.0.8';
+    const OLD_KEY = 'kml_projects_v1.0.6';
     
     const loadProjects = async () => {
       try {
         let savedProjects = await localforage.getItem<Project[]>(CURRENT_KEY);
         
         if (!savedProjects) {
-          // Try to migrate from localStorage if localforage is empty
-          const oldLocalData = localStorage.getItem(OLD_KEY);
-          if (oldLocalData) {
-            savedProjects = JSON.parse(oldLocalData);
+          // Try to migrate from previous version
+          savedProjects = await localforage.getItem<Project[]>(OLD_KEY);
+          if (savedProjects) {
             await localforage.setItem(CURRENT_KEY, savedProjects);
           }
         }
@@ -74,14 +73,14 @@ const App = () => {
   useEffect(() => {
     // Sadece projeler değiştiğinde kaydet
     if (projects.length > 0) {
-      localforage.setItem('kml_projects_v1.0.6', projects).catch(e => {
+      localforage.setItem('kml_projects_v1.0.8', projects).catch(e => {
         console.error("Projeler kaydedilirken hata oluştu:", e);
       });
     }
   }, [projects]);
 
   const handleFinishOnboarding = () => {
-    localStorage.setItem('onboarding_v1.0.6_done', 'true');
+    localStorage.setItem('onboarding_v1.0.8_done', 'true');
     // Use replaceState so dashboard becomes the root (can't go back to onboarding)
     window.history.replaceState({ view: 'dashboard' }, '');
     setView('dashboard');
