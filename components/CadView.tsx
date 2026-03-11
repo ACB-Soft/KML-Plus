@@ -5,8 +5,6 @@ import { Project } from '../types';
 import L from 'leaflet';
 import * as turf from '@turf/turf';
 import tokml from 'tokml';
-import parseGeoraster from 'georaster';
-import GeoRasterLayer from 'georaster-layer-for-leaflet';
 import GlobalFooter from './GlobalFooter';
 
 interface Props {
@@ -15,66 +13,23 @@ interface Props {
 }
 
 // Component to handle bounds fitting
-const FitBounds: React.FC<{ geojson: any, rasterBounds: any[] }> = ({ geojson, rasterBounds }) => {
+const FitBounds: React.FC<{ geojson: any }> = ({ geojson }) => {
   const map = useMap();
   
   useEffect(() => {
-    let combinedBounds: L.LatLngBounds | null = null;
-
     if (geojson) {
       try {
         const layer = L.geoJSON(geojson as any);
         const bounds = layer.getBounds();
         if (bounds.isValid()) {
-          combinedBounds = bounds;
+          map.fitBounds(bounds, { padding: [50, 50] });
         }
       } catch (e) {
         console.error("Error fitting bounds:", e);
       }
     }
+  }, [geojson, map]);
 
-    if (rasterBounds && rasterBounds.length > 0) {
-      rasterBounds.forEach(b => {
-        if (b && b.isValid()) {
-          if (!combinedBounds) {
-            combinedBounds = L.latLngBounds(b.getSouthWest(), b.getNorthEast());
-          } else {
-            combinedBounds.extend(b);
-          }
-        }
-      });
-    }
-
-    if (combinedBounds && combinedBounds.isValid()) {
-      map.fitBounds(combinedBounds, { padding: [50, 50] });
-    }
-  }, [geojson, rasterBounds, map]);
-
-  return null;
-};
-
-// Component to render raster layers
-const RasterLayersRenderer: React.FC<{ layers: any[] }> = ({ layers }) => {
-  const map = useMap();
-  
-  useEffect(() => {
-    if (!map || !layers || layers.length === 0) return;
-    
-    layers.forEach(layer => {
-      if (!map.hasLayer(layer)) {
-        layer.addTo(map);
-      }
-    });
-    
-    return () => {
-      layers.forEach(layer => {
-        if (map.hasLayer(layer)) {
-          map.removeLayer(layer);
-        }
-      });
-    };
-  }, [map, layers]);
-  
   return null;
 };
 
@@ -108,8 +63,6 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
   const [drawnFeatures, setDrawnFeatures] = useState<any[]>([]);
   const [namingFeature, setNamingFeature] = useState<any>(null);
   const [featureNameInput, setFeatureNameInput] = useState('');
-  const [rasterLayers, setRasterLayers] = useState<any[]>([]);
-  const [rasterBoundsList, setRasterBoundsList] = useState<L.LatLngBounds[]>([]);
 
   const activeToolRef = useRef(activeTool);
   useEffect(() => {
@@ -160,42 +113,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
       setCombinedGeoJSON(null);
       setSnapPoints(null);
     }
-
-    // Load raster layers
-    const loadRasters = async () => {
-      const newRasterLayers: any[] = [];
-      const newRasterBounds: L.LatLngBounds[] = [];
-      
-      for (const project of projects) {
-        if (project.rasterLayers && project.rasterLayers.length > 0) {
-          for (const rl of project.rasterLayers) {
-            try {
-              const georaster = await parseGeoraster(rl.data);
-              const layer = new GeoRasterLayer({
-                georaster: georaster,
-                opacity: 0.8,
-                resolution: 256
-              });
-              newRasterLayers.push(layer);
-              
-              const bounds = L.latLngBounds(
-                L.latLng(georaster.ymin, georaster.xmin),
-                L.latLng(georaster.ymax, georaster.xmax)
-              );
-              newRasterBounds.push(bounds);
-            } catch (err) {
-              console.error("Error parsing georaster:", err);
-            }
-          }
-        }
-      }
-      
-      setRasterLayers(newRasterLayers);
-      setRasterBoundsList(newRasterBounds);
-    };
-
-    loadRasters();
-  }, [projects]);
+  }, [projects, visibleLayers]);
 
   useEffect(() => {
     if (measurePoints.length < 2) {
@@ -427,18 +345,6 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         }
       }
 
-      if (rasterBoundsList && rasterBoundsList.length > 0) {
-        rasterBoundsList.forEach(b => {
-          if (b && b.isValid()) {
-            if (!combinedBounds) {
-              combinedBounds = L.latLngBounds(b.getSouthWest(), b.getNorthEast());
-            } else {
-              combinedBounds.extend(b);
-            }
-          }
-        });
-      }
-
       if (combinedBounds && combinedBounds.isValid()) {
         mapInstance.fitBounds(combinedBounds, { padding: [50, 50] });
       }
@@ -475,6 +381,15 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
     } catch (e) {
       console.error("KML dönüştürme hatası:", e);
       alert("Dışa aktarma sırasında bir hata oluştu.");
+    }
+  };
+
+  const handleDeleteFeature = (feature: any) => {
+    if (feature.properties?._isDrawn) {
+      if (window.confirm('Bu çizimi silmek istediğinize emin misiniz?')) {
+        setDrawnFeatures(prev => prev.filter(f => f !== feature));
+        setSelectedFeature(null);
+      }
     }
   };
 
@@ -647,8 +562,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
               />
             </>
           )}
-          <FitBounds geojson={combinedGeoJSON} rasterBounds={rasterBoundsList} />
-          <RasterLayersRenderer layers={rasterLayers} />
+          <FitBounds geojson={combinedGeoJSON} />
 
           {/* Drawn Features */}
           {drawnFeatures.length > 0 && (
@@ -694,14 +608,27 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
           <div className="absolute top-24 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100%-2rem)] max-w-sm pointer-events-auto animate-in fade-in slide-in-from-top-4">
             <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 p-4">
               <div className="flex justify-between items-start mb-2">
-                <h3 className="font-black text-slate-900 text-base">{selectedFeature.properties?.name || 'İsimsiz Obje'}</h3>
-                <button onClick={() => setSelectedFeature(null)} className="text-slate-400 hover:text-slate-600 w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors">
-                  <i className="fas fa-times text-xs"></i>
-                </button>
+                <div className="flex-1">
+                  <h3 className="font-black text-slate-900 text-base">{selectedFeature.properties?.name || 'İsimsiz Obje'}</h3>
+                  {selectedFeature.properties?._projectName && (
+                    <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wider">{selectedFeature.properties._projectName}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {selectedFeature.properties?._isDrawn && (
+                    <button 
+                      onClick={() => handleDeleteFeature(selectedFeature)}
+                      className="text-red-500 hover:text-red-700 w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors"
+                      title="Sil"
+                    >
+                      <i className="fas fa-trash-alt text-sm"></i>
+                    </button>
+                  )}
+                  <button onClick={() => setSelectedFeature(null)} className="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors">
+                    <i className="fas fa-times text-sm"></i>
+                  </button>
+                </div>
               </div>
-              {selectedFeature.properties?._projectName && (
-                <p className="text-[10px] font-bold text-purple-600 mb-2 uppercase tracking-wider">{selectedFeature.properties._projectName}</p>
-              )}
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 max-h-32 overflow-y-auto no-scrollbar">
                 {selectedFeature.properties?.description ? (
                   <p className="text-xs text-slate-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: selectedFeature.properties.description }}></p>

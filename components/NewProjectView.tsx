@@ -55,7 +55,6 @@ const NewProjectView: React.FC<Props> = ({ onBack, onProjectCreated }) => {
 
     try {
       let geojsonData = null;
-      let rasterLayers: { name: string; data: ArrayBuffer }[] = [];
 
       if (file) {
         const ext = file.name.split('.').pop()?.toLowerCase();
@@ -70,21 +69,8 @@ const NewProjectView: React.FC<Props> = ({ onBack, onProjectCreated }) => {
             geojsonData = parseKML(kmlText);
           }
           
-          // Find all .tif or .tiff files in the KMZ
-          const tiffFiles = Object.values(loadedZip.files).filter(f => 
-            f.name.toLowerCase().endsWith('.tif') || f.name.toLowerCase().endsWith('.tiff')
-          );
-          
-          for (const tiffFile of tiffFiles) {
-            const arrayBuffer = await tiffFile.async('arraybuffer');
-            rasterLayers.push({
-              name: tiffFile.name,
-              data: arrayBuffer
-            });
-          }
-          
-          if (!kmlFile && tiffFiles.length === 0) {
-            throw new Error('KMZ dosyası içinde geçerli KML veya GeoTIFF bulunamadı.');
+          if (!kmlFile) {
+            throw new Error('KMZ dosyası içinde geçerli KML bulunamadı.');
           }
         } else if (ext === 'kml') {
           const kmlText = await file.text();
@@ -96,8 +82,7 @@ const NewProjectView: React.FC<Props> = ({ onBack, onProjectCreated }) => {
         id: Date.now().toString(),
         name: projectName.trim(),
         createdAt: Date.now(),
-        geojsonData,
-        rasterLayers: rasterLayers.length > 0 ? rasterLayers : undefined
+        geojsonData
       };
 
       onProjectCreated(newProject);
