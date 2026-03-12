@@ -7,6 +7,8 @@ interface Props {
 }
 
 const HelpView: React.FC<Props> = ({ onBack }) => {
+  const [showUpdateMsg, setShowUpdateMsg] = React.useState(false);
+
   return (
     <div className="flex-1 flex flex-col animate-in h-full overflow-hidden bg-[#F8FAFC]">
       <header className="px-8 pt-6 pb-6 flex items-center gap-5 shrink-0 bg-white shadow-sm">
@@ -105,6 +107,36 @@ const HelpView: React.FC<Props> = ({ onBack }) => {
           </div>
         </section>
 
+        {/* Veri Kaynağı */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-amber-200">
+              <i className="fas fa-database"></i>
+            </div>
+            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Veri Kaynağı</h3>
+          </div>
+          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-6">
+            <p className="text-amber-900 text-sm leading-relaxed font-medium text-justify">
+              Uygulamada kullanılan harita katmanları ve coğrafi veriler açık kaynaklı servislerden (OpenStreetMap, Google Maps API) sağlanmaktadır. Yüklediğiniz KML/KMZ dosyaları tamamen sizin sorumluluğunuzdadır.
+            </p>
+          </div>
+        </section>
+
+        {/* Telif Hakları */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-slate-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-slate-200">
+              <i className="fas fa-copyright"></i>
+            </div>
+            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Yasal Bilgilendirme</h3>
+          </div>
+          <div className="bg-slate-100 border border-slate-200 rounded-2xl p-6">
+            <p className="text-slate-700 text-sm leading-relaxed font-medium text-justify italic">
+              "Bu uygulama telif ihlali barındıran içerik içermemektedir. Tüm yazılım ve tasarım hakları saklıdır."
+            </p>
+          </div>
+        </section>
+
         {/* Hakkında */}
         <section className="space-y-4 pb-10">
           <div className="flex items-center gap-3">
@@ -119,6 +151,23 @@ const HelpView: React.FC<Props> = ({ onBack }) => {
               <br/><br/>
               Google Earth standartlarında görselleştirme, hassas ölçüm araçları ve gelişmiş obje yakalama (snapping) özellikleri ile projelerinizi mobil cihazınızdan kolayca yönetebilirsiniz.
             </p>
+            
+            <button 
+              onClick={() => {
+                setShowUpdateMsg(true);
+                setTimeout(() => setShowUpdateMsg(false), 3000);
+              }}
+              className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 relative"
+            >
+              <i className="fas fa-sync-alt"></i>
+              GÜNCELLEME DENETİMİ
+              {showUpdateMsg && (
+                <div className="absolute -top-12 left-0 right-0 bg-emerald-600 text-white py-2 px-4 rounded-lg text-xs font-bold animate-bounce shadow-lg">
+                  Uygulamanız günceldir. (Sürüm: {APP_VERSION})
+                </div>
+              )}
+            </button>
+
             <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
               <div>
                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Yazılım & Tasarım</p>

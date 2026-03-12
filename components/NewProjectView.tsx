@@ -101,7 +101,7 @@ const NewProjectView: React.FC<Props> = ({ onBack, onProjectCreated }) => {
           <i className="fas fa-chevron-left text-sm"></i>
         </button>
         <div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none">Yeni Proje</h2>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none">Yeni Proje Yükle</h2>
         </div>
       </header>
 

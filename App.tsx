@@ -17,9 +17,13 @@ const App = () => {
   const [selectedProjects, setSelectedProjects] = useState<Project[]>([]);
 
   // Navigation wrapper to sync with browser history
-  const navigateTo = (newView: ViewType) => {
+  const navigateTo = (newView: ViewType, replace = false) => {
     if (newView !== view) {
-      window.history.pushState({ view: newView }, '');
+      if (replace) {
+        window.history.replaceState({ view: newView }, '');
+      } else {
+        window.history.pushState({ view: newView }, '');
+      }
       setView(newView);
     }
   };
@@ -35,7 +39,9 @@ const App = () => {
       if (event.state && event.state.view) {
         setView(event.state.view);
       } else {
-        setView('onboarding');
+        // If no state, check if onboarding was already completed
+        const onboardingDone = localStorage.getItem('onboarding_v1.1.0_done') === 'true';
+        setView(onboardingDone ? 'dashboard' : 'onboarding');
       }
     };
 
@@ -44,8 +50,8 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    const CURRENT_KEY = 'kml_projects_v1.0.8';
-    const OLD_KEY = 'kml_projects_v1.0.6';
+    const CURRENT_KEY = 'kml_projects_v1.1.0';
+    const OLD_KEY = 'kml_projects_v1.0.8';
     
     const loadProjects = async () => {
       try {
@@ -73,14 +79,14 @@ const App = () => {
   useEffect(() => {
     // Sadece projeler değiştiğinde kaydet
     if (projects.length > 0) {
-      localforage.setItem('kml_projects_v1.0.8', projects).catch(e => {
+      localforage.setItem('kml_projects_v1.1.0', projects).catch(e => {
         console.error("Projeler kaydedilirken hata oluştu:", e);
       });
     }
   }, [projects]);
 
   const handleFinishOnboarding = () => {
-    localStorage.setItem('onboarding_v1.0.8_done', 'true');
+    localStorage.setItem('onboarding_v1.1.0_done', 'true');
     // Use replaceState so dashboard becomes the root (can't go back to onboarding)
     window.history.replaceState({ view: 'dashboard' }, '');
     setView('dashboard');
@@ -88,12 +94,12 @@ const App = () => {
 
   const resetToDashboard = () => {
     setSelectedProjects([]);
-    navigateTo('dashboard');
+    navigateTo('dashboard', true);
   };
 
   const handleProjectCreated = (newProject: Project) => {
     setProjects(prev => [newProject, ...prev]);
-    resetToDashboard();
+    navigateTo('projectList', true);
   };
 
   const handleDeleteProject = (id: string) => {

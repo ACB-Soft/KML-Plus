@@ -30,16 +30,35 @@ const Dashboard: React.FC<Props> = ({ onStartCapture, onStakeout, onShowList, on
         </button>
       </div>
 
-      {/* Yardım Butonu - Sağ Üst Köşe (Glow Efektli) */}
-      <div className="absolute top-6 right-8 z-20">
-        <div className="absolute inset-0 bg-blue-400 rounded-2xl blur-xl opacity-20 animate-pulse"></div>
+      {/* Üst Butonlar - Sağ Üst Köşe */}
+      <div className="absolute top-6 right-8 z-20 flex items-center gap-2">
+        {/* Ayarlar Butonu (Pasif) */}
         <button 
-          onClick={onShowHelp}
-          className="relative w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-xl border border-blue-100 text-blue-600 active:scale-90 transition-all hover:bg-blue-50 group"
+          className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-xl border border-blue-100 text-slate-400 cursor-not-allowed active:scale-95 transition-all"
+          title="Ayarlar (Yakında)"
         >
-          <i className="fas fa-question text-xl font-black group-hover:text-amber-500 transition-colors stroke-current stroke-2" style={{ WebkitTextStroke: '1px' }}></i>
-          <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 rounded-full border-2 border-white animate-bounce"></div>
+          <i className="fas fa-cog text-xl font-black"></i>
         </button>
+
+        {/* Koyu Tema Butonu (Pasif) */}
+        <button 
+          className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-xl border border-blue-100 text-slate-400 cursor-not-allowed active:scale-95 transition-all"
+          title="Koyu Tema (Yakında)"
+        >
+          <i className="fas fa-moon text-xl font-black"></i>
+        </button>
+
+        {/* Yardım Butonu (Glow Efektli) */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-blue-400 rounded-2xl blur-xl opacity-20 animate-pulse"></div>
+          <button 
+            onClick={onShowHelp}
+            className="relative w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-xl border border-blue-100 text-blue-600 active:scale-90 transition-all hover:bg-blue-50 group"
+          >
+            <i className="fas fa-question text-xl font-black group-hover:text-amber-500 transition-colors stroke-current stroke-2" style={{ WebkitTextStroke: '1px' }}></i>
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 rounded-full border-2 border-white animate-bounce"></div>
+          </button>
+        </div>
       </div>
 
       {/* Header - Logo kaldırıldı, metinler merkezlendi ve üst girinti artırıldı */}
@@ -67,7 +86,7 @@ const Dashboard: React.FC<Props> = ({ onStartCapture, onStakeout, onShowList, on
             <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30">
               <i className="fas fa-folder-plus text-base md:text-lg text-white"></i>
             </div>
-            <span className="text-sm md:text-base font-black tracking-tight leading-none uppercase">Yeni Proje Oluştur</span>
+            <span className="text-sm md:text-base font-black tracking-tight leading-none uppercase">Yeni Proje Yükle</span>
           </div>
           <i className="fas fa-chevron-right text-white/40 group-hover:translate-x-1 transition-transform text-[10px]"></i>
           <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-6 -mt-6 blur-xl"></div>
@@ -82,7 +101,7 @@ const Dashboard: React.FC<Props> = ({ onStartCapture, onStakeout, onShowList, on
             <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30">
               <i className="fas fa-map-location-dot text-base md:text-lg text-white"></i>
             </div>
-            <span className="text-sm md:text-base font-black tracking-tight leading-none uppercase">Projeye Devam Et</span>
+            <span className="text-sm md:text-base font-black tracking-tight leading-none uppercase">Kayıtlı Projeler</span>
           </div>
           <i className="fas fa-chevron-right text-white/40 group-hover:translate-x-1 transition-transform text-[10px]"></i>
           <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-6 -mt-6 blur-xl"></div>

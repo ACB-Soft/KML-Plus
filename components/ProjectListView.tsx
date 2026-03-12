@@ -53,6 +53,13 @@ const ProjectListView: React.FC<Props> = ({ projects, onBack, onContinue, onDele
       </header>
 
       <div className="p-8 flex-1 flex flex-col max-w-md mx-auto w-full gap-4">
+        {projects.length > 0 && (
+          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-3 mb-2">
+            <p className="text-blue-800 text-[11px] font-bold text-center">
+              En az 1 proje seçiniz. Çoklu proje seçimi de yapabilirsiniz.
+            </p>
+          </div>
+        )}
         {projects.length === 0 ? (
           <div className="text-center text-slate-500 mt-10">
             <i className="fas fa-folder-open text-4xl mb-4 opacity-50"></i>

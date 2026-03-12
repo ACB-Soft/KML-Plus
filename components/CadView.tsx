@@ -5,7 +5,8 @@ import { Project } from '../types';
 import L from 'leaflet';
 import * as turf from '@turf/turf';
 import tokml from 'tokml';
-import GlobalFooter from './GlobalFooter';
+import { convertCoordinate } from '../utils/CoordinateUtils';
+import { APP_VERSION } from '../version';
 
 interface Props {
   projects: Project[];
@@ -65,10 +66,8 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
   const [combinedGeoJSON, setCombinedGeoJSON] = useState<any>(null);
   const [snapPoints, setSnapPoints] = useState<any>(null);
   const [activeTool, setActiveTool] = useState<'pan' | 'distance' | 'area' | 'select' | 'draw_point' | 'draw_line' | 'draw_area' | 'query_point'>('pan');
-  const [isSnappingEnabled, setIsSnappingEnabled] = useState(true);
+  const [isSnappingEnabled, setIsSnappingEnabled] = useState(false);
   const [visibleLayers, setVisibleLayers] = useState<Set<string>>(new Set());
-  const [showLayersPanel, setShowLayersPanel] = useState(false);
-  const [layerStructure, setLayerStructure] = useState<any[]>([]);
   const [measurePoints, setMeasurePoints] = useState<L.LatLng[]>([]);
   const [measurementResult, setMeasurementResult] = useState<string | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<any>(null);
@@ -77,6 +76,9 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
   const [drawnFeatures, setDrawnFeatures] = useState<any[]>([]);
   const [namingFeature, setNamingFeature] = useState<any>(null);
   const [featureNameInput, setFeatureNameInput] = useState('');
+  const [selectedCoordSystem, setSelectedCoordSystem] = useState('WGS84');
+  const [queryCoord, setQueryCoord] = useState<L.LatLng | null>(null);
+  const [currentDrawInfo, setCurrentDrawInfo] = useState<string | null>(null);
 
   const activeToolRef = useRef(activeTool);
   useEffect(() => {
@@ -101,7 +103,6 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
     });
 
     const layers = Array.from(new Set(allFeatures.map(f => f.properties._projectName || 'Varsayılan')));
-    setLayerStructure(layers);
 
     // Initialize visible layers if not set
     if (visibleLayers.size === 0 && layers.length > 0) {
@@ -139,27 +140,34 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
       return;
     }
 
-    if (activeTool === 'distance') {
+    if (activeTool === 'distance' || activeTool === 'draw_line') {
       const line = turf.lineString(measurePoints.map(p => [p.lng, p.lat]));
       const length = turf.length(line, { units: 'meters' });
+      let result = '';
       if (length > 1000) {
-        setMeasurementResult((length / 1000).toFixed(2) + ' km');
+        result = (length / 1000).toFixed(2) + ' km';
       } else {
-        setMeasurementResult(length.toFixed(2) + ' m');
+        result = length.toFixed(2) + ' m';
       }
-    } else if (activeTool === 'area') {
+      if (activeTool === 'distance') setMeasurementResult(result);
+      else setCurrentDrawInfo(result);
+    } else if (activeTool === 'area' || activeTool === 'draw_area') {
       if (measurePoints.length >= 3) {
         const coords = measurePoints.map(p => [p.lng, p.lat]);
         coords.push(coords[0]); // close the polygon
         const poly = turf.polygon([coords]);
         const area = turf.area(poly); // in square meters
+        let result = '';
         if (area > 10000) {
-          setMeasurementResult((area / 10000).toFixed(2) + ' ha');
+          result = (area / 10000).toFixed(2) + ' ha';
         } else {
-          setMeasurementResult(area.toFixed(2) + ' m²');
+          result = area.toFixed(2) + ' m²';
         }
+        if (activeTool === 'area') setMeasurementResult(result);
+        else setCurrentDrawInfo(result);
       } else {
         setMeasurementResult(null);
+        setCurrentDrawInfo(null);
       }
     }
   }, [measurePoints, activeTool]);
@@ -238,22 +246,23 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
           };
           setNamingFeature(newFeature);
           setFeatureNameInput('Yeni Nokta');
+          setCurrentDrawInfo(`${finalLatLng.lat.toFixed(6)}, ${finalLatLng.lng.toFixed(6)}`);
           return;
         }
 
         if (activeTool === 'query_point') {
-          const newFeature = {
+          setQueryCoord(finalLatLng);
+          setSelectedFeature({
             type: 'Feature',
             properties: { 
               name: 'Koordinat Bilgisi',
-              description: `Enlem: ${finalLatLng.lat.toFixed(6)}<br/>Boylam: ${finalLatLng.lng.toFixed(6)}`
+              _isQuery: true
             },
             geometry: {
               type: 'Point',
               coordinates: [finalLatLng.lng, finalLatLng.lat]
             }
-          };
-          setSelectedFeature(newFeature);
+          });
           return;
         }
         
@@ -415,10 +424,11 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
           <i className="fas fa-chevron-left text-sm"></i>
         </button>
         <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl shadow-lg border border-white/20 pointer-events-auto flex items-center gap-3">
-          <button onClick={handleSaveAs} className="text-blue-600 hover:text-blue-700 active:scale-95 transition-all" title="Farklı Kaydet">
+          <button onClick={handleSaveAs} className="flex flex-col items-center text-blue-600 hover:text-blue-700 active:scale-95 transition-all" title="Farklı Kaydet">
             <i className="fas fa-save text-lg"></i>
+            <span className="text-[8px] font-black uppercase mt-0.5">Farklı Kaydet</span>
           </button>
-          <div className="w-px h-6 bg-slate-200"></div>
+          <div className="w-px h-8 bg-slate-200"></div>
           <div>
             <h2 className="text-sm font-black text-slate-900 tracking-tight">CAD Görünümü</h2>
             <p className="text-[10px] font-bold text-slate-500">{projects.length} Proje Aktif</p>
@@ -469,6 +479,15 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
           <span className="text-[7px] font-bold leading-[1.1] text-center">Alan<br/>Hesapla</span>
         </button>
         
+        <button 
+          onClick={() => setShowLayersPanel(!showLayersPanel)} 
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${showLayersPanel ? 'bg-slate-800 text-white' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white hover:text-blue-600'}`}
+          title="Katmanlar"
+        >
+          <i className="fas fa-layer-group text-sm"></i>
+          <span className="text-[7px] font-bold leading-[1.1] text-center">Katmanlar</span>
+        </button>
+        
         <div className="w-12 h-px bg-slate-300/50 my-1"></div>
         
         <button 
@@ -486,14 +505,6 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         >
           <i className="fas fa-location-crosshairs text-sm"></i>
           <span className="text-[7px] font-bold leading-[1.1] text-center">Mevcut<br/>Konum</span>
-        </button>
-        <button 
-          onClick={() => setShowLayersPanel(!showLayersPanel)} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${showLayersPanel ? 'bg-slate-800 text-white' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white hover:text-blue-600'}`}
-          title="Katmanlar"
-        >
-          <i className="fas fa-layer-group text-sm"></i>
-          <span className="text-[7px] font-bold leading-[1.1] text-center">Katmanlar</span>
         </button>
       </div>
 
@@ -617,169 +628,182 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
 
         </MapContainer>
 
-        {/* Selected Feature Overlay (Bottom Position) */}
-        {(activeTool === 'select' || activeTool === 'query_point') && selectedFeature && (
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100%-2rem)] max-w-sm pointer-events-auto animate-in slide-in-from-bottom-4">
-            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200 p-3 flex flex-col gap-2">
-              <div className="flex justify-between items-center">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-black text-slate-900 text-sm truncate">{selectedFeature.properties?.name || 'İsimsiz Obje'}</h3>
-                  {selectedFeature.properties?._projectName && (
-                    <p className="text-[9px] font-bold text-blue-600 uppercase tracking-wider truncate">{selectedFeature.properties._projectName}</p>
+        {/* Unified Bottom Info & Brand Area */}
+        <div className="absolute bottom-0 left-0 right-0 z-[1000] flex flex-col pointer-events-auto">
+          {/* Info Box Area (2/3 height equivalent) */}
+          <div className="bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 min-h-[100px] flex flex-col shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+            {namingFeature ? (
+              <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-wider">
+                    {namingFeature.geometry.type === 'Point' ? 'Nokta' : namingFeature.geometry.type === 'LineString' ? 'Çizgi' : 'Alan'} İsimlendir
+                  </h3>
+                  {currentDrawInfo && (
+                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{currentDrawInfo}</span>
                   )}
                 </div>
-                <div className="flex items-center gap-1">
-                  {selectedFeature.properties?._isDrawn && (
-                    <button 
-                      onClick={() => handleDeleteFeature(selectedFeature)}
-                      className="text-red-500 hover:text-red-700 w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors"
-                      title="Sil"
-                    >
-                      <i className="fas fa-trash-alt text-xs"></i>
-                    </button>
-                  )}
-                  <button onClick={() => setSelectedFeature(null)} className="text-slate-400 hover:text-slate-600 w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors">
-                    <i className="fas fa-times text-xs"></i>
-                  </button>
-                </div>
-              </div>
-              {selectedFeature.properties?.description && (
-                <div className="bg-slate-50/50 p-2 rounded-xl border border-slate-100/50 max-h-24 overflow-y-auto no-scrollbar">
-                  <p className="text-[11px] text-slate-700 leading-tight" dangerouslySetInnerHTML={{ __html: selectedFeature.properties.description }}></p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Layers Panel */}
-        {showLayersPanel && (
-          <div className="absolute top-24 left-20 z-[1001] w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 animate-in slide-in-from-left-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-black text-slate-900 text-sm uppercase tracking-tight">Katmanlar</h3>
-              <button onClick={() => setShowLayersPanel(false)} className="text-slate-400 hover:text-slate-600">
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className="space-y-2 max-h-64 overflow-y-auto no-scrollbar">
-              {layerStructure.map(layer => (
-                <div key={layer} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <button 
-                      onClick={() => {
-                        if (mapInstance && combinedGeoJSON) {
-                          const layerFeatures = combinedGeoJSON.features.filter((f: any) => (f.properties._projectName || 'Varsayılan') === layer);
-                          if (layerFeatures.length > 0) {
-                            const layerGroup = L.geoJSON({ type: 'FeatureCollection', features: layerFeatures } as any);
-                            const bounds = layerGroup.getBounds();
-                            if (bounds.isValid()) {
-                              mapInstance.fitBounds(bounds, { padding: [50, 50] });
-                            }
-                          }
-                        }
-                      }}
-                      className="text-slate-400 hover:text-blue-600 transition-colors"
-                      title="Katmana Odaklan"
-                    >
-                      <i className="fas fa-search-location"></i>
-                    </button>
-                    <span className="text-xs font-bold text-slate-700 truncate">{layer}</span>
-                  </div>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    value={featureNameInput}
+                    onChange={(e) => setFeatureNameInput(e.target.value)}
+                    placeholder="İsim giriniz..."
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autoFocus
+                  />
                   <button 
-                    onClick={() => toggleLayer(layer)}
-                    className={`w-10 h-6 rounded-full transition-all relative shrink-0 ${visibleLayers.has(layer) ? 'bg-blue-600' : 'bg-slate-200'}`}
+                    onClick={() => {
+                      setNamingFeature(null);
+                      setCurrentDrawInfo(null);
+                    }}
+                    className="px-4 py-2 rounded-lg font-black text-[10px] uppercase text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
                   >
-                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${visibleLayers.has(layer) ? 'left-5' : 'left-1'}`}></div>
+                    İptal
+                  </button>
+                  <button 
+                    onClick={() => {
+                      const finalFeature = {
+                        ...namingFeature,
+                        properties: {
+                          ...namingFeature.properties,
+                          name: featureNameInput.trim() || 'İsimsiz Obje'
+                        }
+                      };
+                      setDrawnFeatures(prev => [...prev, finalFeature]);
+                      setNamingFeature(null);
+                      setCurrentDrawInfo(null);
+                    }}
+                    className="px-4 py-2 rounded-lg font-black text-[10px] uppercase text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30"
+                  >
+                    Kaydet
                   </button>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Measurement Result Overlay */}
-        {measurementResult && !selectedFeature && (
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[1000] pointer-events-auto animate-in slide-in-from-bottom-4">
-            <button 
-              onClick={() => setMeasurePoints([])} 
-              className="bg-white/95 backdrop-blur-md px-5 py-3 rounded-2xl shadow-xl border border-slate-200 flex items-center gap-3 active:scale-95 transition-all"
-            >
-              <span className="text-sm font-black text-slate-900 tracking-tight">
-                {activeTool === 'distance' ? 'Mesafe: ' : 'Alan: '}
-                {measurementResult}
-              </span>
-              <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-red-100 hover:text-red-500 transition-colors">
-                <i className="fas fa-times text-xs"></i>
               </div>
-            </button>
-          </div>
-        )}
+            ) : selectedFeature ? (
+              <div className="flex flex-col animate-in fade-in">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-black text-slate-900 text-sm truncate">{selectedFeature.properties?.name || 'İsimsiz Obje'}</h3>
+                    {selectedFeature.properties?._projectName && (
+                      <p className="text-[9px] font-bold text-blue-600 uppercase tracking-wider truncate">{selectedFeature.properties._projectName}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {selectedFeature.properties?._isDrawn && (
+                      <button 
+                        onClick={() => handleDeleteFeature(selectedFeature)}
+                        className="text-red-500 hover:text-red-700 w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors"
+                      >
+                        <i className="fas fa-trash-alt text-xs"></i>
+                      </button>
+                    )}
+                    <button onClick={() => { setSelectedFeature(null); setQueryCoord(null); }} className="text-slate-400 hover:text-slate-600 w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors">
+                      <i className="fas fa-times text-xs"></i>
+                    </button>
+                  </div>
+                </div>
 
-        {/* Tool Hint */}
-        {activeTool !== 'pan' && activeTool !== 'select' && measurePoints.length === 0 && (
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[1000] bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-full shadow-lg pointer-events-none animate-pulse">
-            <p className="text-xs font-medium text-white">
-              {activeTool === 'distance' ? 'Ölçüme başlamak için haritaya tıklayın' : 
-               activeTool === 'area' ? 'Alan ölçmek için haritaya tıklayın' :
-               activeTool === 'draw_point' ? 'Nokta eklemek için haritaya tıklayın' :
-               activeTool === 'draw_line' ? 'Çizgi çizmek için haritaya tıklayın' :
-               'Alan çizmek için haritaya tıklayın'}
+                {selectedFeature.properties?._isQuery && queryCoord ? (
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Sistem:</label>
+                      <select 
+                        value={selectedCoordSystem}
+                        onChange={(e) => setSelectedCoordSystem(e.target.value)}
+                        className="bg-transparent border-none p-0 text-[10px] font-bold text-slate-700 focus:ring-0"
+                      >
+                        <option value="WGS84">WGS84 (Derece)</option>
+                        <option value="ITRF96_3">ITRF96 (TM3)</option>
+                        <option value="ED50_3">ED50 (TM3)</option>
+                        <option value="ED50_6">ED50 (UTM6)</option>
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(() => {
+                        const converted = convertCoordinate(queryCoord.lat, queryCoord.lng, selectedCoordSystem);
+                        return (
+                          <>
+                            <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                              <p className="text-[8px] font-black text-slate-400 uppercase mb-0.5">{converted.labelY}</p>
+                              <p className="text-xs font-black text-slate-900 tabular-nums">{converted.y.toFixed(selectedCoordSystem === 'WGS84' ? 6 : 3)}</p>
+                            </div>
+                            <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                              <p className="text-[8px] font-black text-slate-400 uppercase mb-0.5">{converted.labelX}</p>
+                              <p className="text-xs font-black text-slate-900 tabular-nums">{converted.x.toFixed(selectedCoordSystem === 'WGS84' ? 6 : 3)}</p>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                ) : selectedFeature.properties?.description ? (
+                  <div className="bg-slate-50/50 p-2 rounded-xl border border-slate-100/50 max-h-20 overflow-y-auto no-scrollbar">
+                    <p className="text-[10px] text-slate-700 leading-tight font-medium" dangerouslySetInnerHTML={{ __html: selectedFeature.properties.description }}></p>
+                  </div>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center italic text-slate-400 text-[10px]">
+                    Açıklama bulunmuyor
+                  </div>
+                )}
+              </div>
+            ) : measurementResult ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center animate-in zoom-in-95">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                  {activeTool === 'distance' ? 'Toplam Mesafe' : 'Hesaplanan Alan'}
+                </p>
+                <p className="text-2xl font-black text-slate-900 tracking-tighter">
+                  {measurementResult}
+                </p>
+                <button 
+                  onClick={() => setMeasurePoints([])}
+                  className="mt-2 px-3 py-1 bg-slate-100 hover:bg-red-50 hover:text-red-600 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5"
+                >
+                  <i className="fas fa-trash-alt"></i> Temizle
+                </button>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-center">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1.5 ${
+                  activeTool === 'distance' ? 'bg-emerald-100 text-emerald-600' :
+                  activeTool === 'area' ? 'bg-amber-100 text-amber-600' :
+                  activeTool === 'query_point' ? 'bg-indigo-100 text-indigo-600' :
+                  activeTool === 'pan' ? 'bg-slate-100 text-slate-400' :
+                  'bg-violet-100 text-violet-600'
+                }`}>
+                  <i className={`fas ${
+                    activeTool === 'distance' ? 'fa-ruler' :
+                    activeTool === 'area' ? 'fa-draw-polygon' :
+                    activeTool === 'query_point' ? 'fa-crosshairs' :
+                    activeTool === 'pan' ? 'fa-hand-paper' :
+                    'fa-plus'
+                  } text-xs`}></i>
+                </div>
+                <p className="text-[10px] font-black text-slate-900 uppercase tracking-tight">
+                  {activeTool === 'distance' ? 'Mesafe Ölçümü' : 
+                   activeTool === 'area' ? 'Alan Ölçümü' :
+                   activeTool === 'query_point' ? 'Koordinat Sorgulama' :
+                   activeTool === 'pan' ? 'Gezinti Modu' :
+                   activeTool === 'select' ? 'Obje Seçim Modu' :
+                   'Çizim Modu'}
+                </p>
+                <p className="text-[9px] font-bold text-slate-500 mt-0.5">
+                  {activeTool === 'pan' ? 'Haritayı kaydırabilir ve yakınlaştırabilirsiniz' :
+                   activeTool === 'select' ? 'Bilgi almak için bir objeye tıklayın' :
+                   measurePoints.length === 0 ? 'İşleme başlamak için haritaya tıklayın' : 
+                   activeTool === 'draw_line' || activeTool === 'draw_area' ? `Nokta eklemeye devam edin${currentDrawInfo ? ` (${currentDrawInfo})` : ''}` :
+                   'Noktaları sürükleyerek düzenleyebilirsiniz'}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Brand Info Area (1/3 height equivalent) */}
+          <div className="bg-[#F8FAFC] py-3 flex items-center justify-center border-t border-slate-100">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] text-center">
+              ACB_Soft KML Plus {APP_VERSION}
             </p>
           </div>
-        )}
-
-        {activeTool === 'select' && !selectedFeature && (
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[1000] bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-full shadow-lg pointer-events-none animate-pulse">
-            <p className="text-xs font-medium text-white">
-              Detaylarını görmek için bir objeye tıklayın
-            </p>
-          </div>
-        )}
-
-        {/* Footer Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 bg-[#F8FAFC] z-[1000] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-          <GlobalFooter />
         </div>
-
-        {/* Naming Modal */}
-        {namingFeature && (
-          <div className="absolute inset-0 z-[2000] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto">
-            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in-95">
-              <h3 className="text-lg font-black text-slate-900 mb-4">Objeye İsim Ver</h3>
-              <input 
-                type="text" 
-                value={featureNameInput}
-                onChange={(e) => setFeatureNameInput(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6"
-                autoFocus
-              />
-              <div className="flex gap-3">
-                <button 
-                  onClick={() => setNamingFeature(null)}
-                  className="flex-1 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
-                >
-                  İptal
-                </button>
-                <button 
-                  onClick={() => {
-                    const finalFeature = {
-                      ...namingFeature,
-                      properties: {
-                        ...namingFeature.properties,
-                        name: featureNameInput.trim() || 'İsimsiz Obje'
-                      }
-                    };
-                    setDrawnFeatures(prev => [...prev, finalFeature]);
-                    setNamingFeature(null);
-                  }}
-                  className="flex-1 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30"
-                >
-                  Kaydet
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
