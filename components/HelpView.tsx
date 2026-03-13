@@ -117,7 +117,7 @@ const HelpView: React.FC<Props> = ({ onBack }) => {
           </div>
           <div className="bg-amber-50 border border-amber-100 rounded-2xl p-6">
             <p className="text-amber-900 text-sm leading-relaxed font-medium text-justify">
-              Uygulamada kullanılan harita katmanları ve coğrafi veriler açık kaynaklı servislerden (OpenStreetMap, Google Maps API) sağlanmaktadır. Yüklediğiniz KML/KMZ dosyaları tamamen sizin sorumluluğunuzdadır.
+              Uygulamada kullanılan harita katmanları ve coğrafi veriler açık kaynaklı servislerden (OpenStreetMap, OpenTopoMap, Google Maps API) sağlanmaktadır. Yüklediğiniz KML/KMZ dosyaları tamamen sizin sorumluluğunuzdadır.
             </p>
           </div>
         </section>

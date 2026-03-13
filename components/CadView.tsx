@@ -79,6 +79,9 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
   const [selectedCoordSystem, setSelectedCoordSystem] = useState('WGS84');
   const [queryCoord, setQueryCoord] = useState<L.LatLng | null>(null);
   const [currentDrawInfo, setCurrentDrawInfo] = useState<string | null>(null);
+  const [mapType, setMapType] = useState<'satellite' | 'topo' | 'hybrid'>('satellite');
+  const [tempMapType, setTempMapType] = useState<'satellite' | 'topo' | 'hybrid'>('satellite');
+  const [isSelectingMap, setIsSelectingMap] = useState(false);
 
   const activeToolRef = useRef(activeTool);
   useEffect(() => {
@@ -424,9 +427,24 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
           <i className="fas fa-chevron-left text-sm"></i>
         </button>
         <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl shadow-lg border border-white/20 pointer-events-auto flex items-center gap-3">
+          <button 
+            onClick={() => {
+              setTempMapType(mapType);
+              setIsSelectingMap(true);
+              setSelectedFeature(null);
+              setNamingFeature(null);
+              setMeasurePoints([]);
+            }} 
+            className="flex flex-col items-center text-emerald-600 hover:text-emerald-700 active:scale-95 transition-all" 
+            title="Harita Altlığı Değiştir"
+          >
+            <i className="fas fa-map-marked-alt text-lg"></i>
+            <span className="text-[8px] font-black uppercase mt-0.5 text-center leading-tight">Harita<br/>Altlığı</span>
+          </button>
+          <div className="w-px h-8 bg-slate-200"></div>
           <button onClick={handleSaveAs} className="flex flex-col items-center text-blue-600 hover:text-blue-700 active:scale-95 transition-all" title="Farklı Kaydet">
             <i className="fas fa-save text-lg"></i>
-            <span className="text-[8px] font-black uppercase mt-0.5">Farklı Kaydet</span>
+            <span className="text-[8px] font-black uppercase mt-0.5 text-center leading-tight">Farklı<br/>Kaydet</span>
           </button>
           <div className="w-px h-8 bg-slate-200"></div>
           <div>
@@ -480,17 +498,6 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         </button>
         
         <button 
-          onClick={() => setShowLayersPanel(!showLayersPanel)} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${showLayersPanel ? 'bg-slate-800 text-white' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white hover:text-blue-600'}`}
-          title="Katmanlar"
-        >
-          <i className="fas fa-layer-group text-sm"></i>
-          <span className="text-[7px] font-bold leading-[1.1] text-center">Katmanlar</span>
-        </button>
-        
-        <div className="w-12 h-px bg-slate-300/50 my-1"></div>
-        
-        <button 
           onClick={handleFitBounds} 
           className="w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white hover:text-blue-600"
           title="Limit Bul"
@@ -498,6 +505,10 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
           <i className="fas fa-expand text-sm"></i>
           <span className="text-[7px] font-bold leading-[1.1] text-center">Limit<br/>Bul</span>
         </button>
+      </div>
+
+      {/* Draw Tools Panel - Right Side */}
+      <div className="absolute top-24 right-4 z-[1000] flex flex-col gap-3 pointer-events-auto">
         <button 
           onClick={handleLocate} 
           className="w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white hover:text-blue-600"
@@ -506,10 +517,6 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
           <i className="fas fa-location-crosshairs text-sm"></i>
           <span className="text-[7px] font-bold leading-[1.1] text-center">Mevcut<br/>Konum</span>
         </button>
-      </div>
-
-      {/* Draw Tools Panel - Right Side */}
-      <div className="absolute top-24 right-4 z-[1000] flex flex-col gap-3 pointer-events-auto">
         <button 
           onClick={() => setIsSnappingEnabled(!isSnappingEnabled)} 
           className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${isSnappingEnabled ? 'bg-orange-600 text-white' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white'}`}
@@ -518,8 +525,6 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
           <i className={`fas ${isSnappingEnabled ? 'fa-magnet' : 'fa-magnet text-slate-300'} text-sm`}></i>
           <span className="text-[7px] font-bold leading-[1.1] text-center">Obje<br/>Yakala</span>
         </button>
-
-        <div className="w-12 h-px bg-slate-300/50 my-1"></div>
 
         <button 
           onClick={() => handleToolChange('draw_point')} 
@@ -567,10 +572,18 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
           attributionControl={false}
         >
           <TileLayer
-            url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
-            attribution="&copy; Google Maps"
-            maxZoom={22}
-            maxNativeZoom={20}
+            url={mapType === 'satellite' 
+              ? "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}" 
+              : mapType === 'hybrid'
+              ? "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+              : "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+            }
+            attribution={mapType === 'topo' 
+              ? "&copy; OpenTopoMap contributors"
+              : "&copy; Google Maps"
+            }
+            maxZoom={mapType === 'topo' ? 17 : 22}
+            maxNativeZoom={mapType === 'topo' ? 17 : 20}
           />
           
           <MapEvents />
@@ -632,7 +645,53 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         <div className="absolute bottom-0 left-0 right-0 z-[1000] flex flex-col pointer-events-auto">
           {/* Info Box Area (2/3 height equivalent) */}
           <div className="bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 min-h-[100px] flex flex-col shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-            {namingFeature ? (
+            {isSelectingMap ? (
+              <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-wider">Harita Altlığı Seç</h3>
+                </div>
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                  <button 
+                    onClick={() => setTempMapType('satellite')}
+                    className={`flex-1 min-w-[80px] p-2 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${tempMapType === 'satellite' ? 'border-blue-600 bg-blue-50' : 'border-slate-100 bg-slate-50'}`}
+                  >
+                    <i className="fas fa-satellite text-lg text-slate-700"></i>
+                    <span className="text-[9px] font-bold text-slate-900">Google Uydu</span>
+                  </button>
+                  <button 
+                    onClick={() => setTempMapType('hybrid')}
+                    className={`flex-1 min-w-[80px] p-2 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${tempMapType === 'hybrid' ? 'border-blue-600 bg-blue-50' : 'border-slate-100 bg-slate-50'}`}
+                  >
+                    <i className="fas fa-map-marked-alt text-lg text-slate-700"></i>
+                    <span className="text-[9px] font-bold text-slate-900">Google Hibrit</span>
+                  </button>
+                  <button 
+                    onClick={() => setTempMapType('topo')}
+                    className={`flex-1 min-w-[80px] p-2 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${tempMapType === 'topo' ? 'border-blue-600 bg-blue-50' : 'border-slate-100 bg-slate-50'}`}
+                  >
+                    <i className="fas fa-mountain text-lg text-slate-700"></i>
+                    <span className="text-[9px] font-bold text-slate-900">OpenTopoMap</span>
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setIsSelectingMap(false)}
+                    className="flex-1 py-2 rounded-lg font-black text-[10px] uppercase text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                  >
+                    İptal
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setMapType(tempMapType);
+                      setIsSelectingMap(false);
+                    }}
+                    className="flex-1 py-2 rounded-lg font-black text-[10px] uppercase text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30"
+                  >
+                    Kaydet
+                  </button>
+                </div>
+              </div>
+            ) : namingFeature ? (
               <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2">
                 <div className="flex items-center justify-between">
                   <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-wider">
