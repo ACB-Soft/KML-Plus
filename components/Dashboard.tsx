@@ -40,14 +40,6 @@ const Dashboard: React.FC<Props> = ({ onStartCapture, onStakeout, onShowList, on
           <i className="fas fa-cog text-xl font-black"></i>
         </button>
 
-        {/* Koyu Tema Butonu (Pasif) */}
-        <button 
-          className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-xl border border-blue-100 text-slate-400 cursor-not-allowed active:scale-95 transition-all"
-          title="Koyu Tema (Yakında)"
-        >
-          <i className="fas fa-moon text-xl font-black"></i>
-        </button>
-
         {/* Yardım Butonu (Glow Efektli) */}
         <div className="relative">
           <div className="absolute inset-0 bg-blue-400 rounded-2xl blur-xl opacity-20 animate-pulse"></div>
