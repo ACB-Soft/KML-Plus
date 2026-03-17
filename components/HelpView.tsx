@@ -7,8 +7,6 @@ interface Props {
 }
 
 const HelpView: React.FC<Props> = ({ onBack }) => {
-  const [showUpdateMsg, setShowUpdateMsg] = React.useState(false);
-
   return (
     <div className="flex-1 flex flex-col animate-in h-full overflow-hidden bg-[#F8FAFC]">
       <header className="px-8 pt-6 pb-6 flex items-center gap-5 shrink-0 bg-white shadow-sm">
@@ -152,22 +150,6 @@ const HelpView: React.FC<Props> = ({ onBack }) => {
               Google Earth standartlarında görselleştirme, hassas ölçüm araçları ve gelişmiş obje yakalama (snapping) özellikleri ile projelerinizi mobil cihazınızdan kolayca yönetebilirsiniz.
             </p>
             
-            <button 
-              onClick={() => {
-                setShowUpdateMsg(true);
-                setTimeout(() => setShowUpdateMsg(false), 3000);
-              }}
-              className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 relative"
-            >
-              <i className="fas fa-sync-alt"></i>
-              GÜNCELLEME DENETİMİ
-              {showUpdateMsg && (
-                <div className="absolute -top-12 left-0 right-0 bg-emerald-600 text-white py-2 px-4 rounded-lg text-xs font-bold animate-bounce shadow-lg">
-                  Uygulamanız günceldir. (Sürüm: {APP_VERSION})
-                </div>
-              )}
-            </button>
-
             <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
               <div>
                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Yazılım & Tasarım</p>

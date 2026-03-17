@@ -9,11 +9,12 @@ import ProjectListView from './components/ProjectListView';
 import CadView from './components/CadView';
 import AboutView from './components/AboutView';
 import SettingsView from './components/SettingsView';
+import CreateProjectView from './components/CreateProjectView';
 import { SavedLocation, Project } from './types';
 import { geoidService } from './services/GeoidService';
 
 const App = () => {
-  type ViewType = 'onboarding' | 'dashboard' | 'help' | 'newProject' | 'projectList' | 'cadView' | 'about' | 'settings';
+  type ViewType = 'onboarding' | 'dashboard' | 'help' | 'newProject' | 'createProject' | 'projectList' | 'cadView' | 'about' | 'settings';
   const [view, setView] = useState<ViewType>('onboarding');
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjects, setSelectedProjects] = useState<Project[]>([]);
@@ -127,6 +128,7 @@ const App = () => {
         {view === 'dashboard' && (
           <div className="flex-1 flex flex-col overflow-y-auto h-full no-scrollbar">
             <Dashboard 
+              onCreateProject={() => navigateTo('createProject')}
               onStartCapture={() => navigateTo('newProject')} 
               onStakeout={() => navigateTo('projectList')}
               onShowList={() => {}}
@@ -135,8 +137,15 @@ const App = () => {
               onShowAbout={() => navigateTo('about')}
               onShowSettings={() => navigateTo('settings')}
             />
-            <GlobalFooter showAd={true} />
+            <GlobalFooter />
           </div>
+        )}
+
+        {view === 'createProject' && (
+          <CreateProjectView 
+            onBack={resetToDashboard}
+            onProjectCreated={handleProjectCreated}
+          />
         )}
 
         {view === 'help' && (
