@@ -180,6 +180,24 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
       if (activeToolRef.current === 'select') {
         L.DomEvent.stopPropagation(e);
         setSelectedFeature(feature);
+      } else if (activeToolRef.current === 'query_point') {
+        // If it's a point, use its exact coordinates and stop propagation
+        if (feature.geometry.type === 'Point') {
+          L.DomEvent.stopPropagation(e);
+          const [lng, lat] = feature.geometry.coordinates;
+          const latlng = L.latLng(lat, lng);
+          setQueryCoord(latlng);
+          setSelectedFeature({
+            type: 'Feature',
+            properties: { 
+              name: 'Koordinat Bilgisi',
+              _isQuery: true
+            },
+            geometry: feature.geometry
+          });
+        }
+        // For lines/polygons, we don't stop propagation so the MapEvents click handler 
+        // can catch it and apply the snapping logic consistently.
       }
     });
   };
@@ -270,8 +288,8 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
             const clickContainerPt = map.latLngToContainerPoint(e.latlng);
             const nearestContainerPt = map.latLngToContainerPoint(nearestLatLng);
             
-            // Snap if within 20 pixels
-            if (clickContainerPt.distanceTo(nearestContainerPt) < 20) {
+            // Snap if within 30 pixels (increased for better mobile usability)
+            if (clickContainerPt.distanceTo(nearestContainerPt) < 30) {
               finalLatLng = nearestLatLng;
             }
           }

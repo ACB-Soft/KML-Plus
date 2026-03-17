@@ -7,9 +7,11 @@ interface Props {
   onShowList: () => void;
   onShowExport: () => void;
   onShowHelp: () => void;
+  onShowSettings: () => void;
+  onShowAbout: () => void;
 }
 
-const Dashboard: React.FC<Props> = ({ onStartCapture, onStakeout, onShowList, onShowExport, onShowHelp }) => {
+const Dashboard: React.FC<Props> = ({ onStartCapture, onStakeout, onShowList, onShowExport, onShowHelp, onShowSettings }) => {
   return (
     <div className="flex-1 flex flex-col bg-[#F8FAFC] animate-in px-8 pt-20 md:pt-28 justify-start relative">
       {/* Dil / Bayrak - Sol Üst Köşe */}
@@ -32,10 +34,11 @@ const Dashboard: React.FC<Props> = ({ onStartCapture, onStakeout, onShowList, on
 
       {/* Üst Butonlar - Sağ Üst Köşe */}
       <div className="absolute top-6 right-8 z-20 flex items-center gap-2">
-        {/* Ayarlar Butonu (Pasif) */}
+        {/* Ayarlar Butonu */}
         <button 
-          className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-xl border border-blue-100 text-slate-400 cursor-not-allowed active:scale-95 transition-all"
-          title="Ayarlar (Yakında)"
+          onClick={onShowSettings}
+          className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-xl border border-blue-100 text-slate-600 active:scale-95 transition-all hover:bg-blue-50"
+          title="Ayarlar"
         >
           <i className="fas fa-cog text-xl font-black"></i>
         </button>

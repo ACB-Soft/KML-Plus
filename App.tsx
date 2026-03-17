@@ -8,11 +8,12 @@ import NewProjectView from './components/NewProjectView';
 import ProjectListView from './components/ProjectListView';
 import CadView from './components/CadView';
 import AboutView from './components/AboutView';
+import SettingsView from './components/SettingsView';
 import { SavedLocation, Project } from './types';
 import { geoidService } from './services/GeoidService';
 
 const App = () => {
-  type ViewType = 'onboarding' | 'dashboard' | 'help' | 'newProject' | 'projectList' | 'cadView' | 'about';
+  type ViewType = 'onboarding' | 'dashboard' | 'help' | 'newProject' | 'projectList' | 'cadView' | 'about' | 'settings';
   const [view, setView] = useState<ViewType>('onboarding');
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjects, setSelectedProjects] = useState<Project[]>([]);
@@ -132,6 +133,7 @@ const App = () => {
               onShowExport={() => {}}
               onShowHelp={() => navigateTo('help')}
               onShowAbout={() => navigateTo('about')}
+              onShowSettings={() => navigateTo('settings')}
             />
             <GlobalFooter showAd={true} />
           </div>
@@ -139,6 +141,10 @@ const App = () => {
 
         {view === 'help' && (
           <HelpView onBack={resetToDashboard} />
+        )}
+
+        {view === 'settings' && (
+          <SettingsView onBack={resetToDashboard} />
         )}
 
         {view === 'about' && (
