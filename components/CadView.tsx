@@ -852,13 +852,46 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
                       })()}
                     </div>
                   </div>
-                ) : selectedFeature.properties?.description ? (
-                  <div className="bg-slate-50/50 p-2 rounded-xl border border-slate-100/50 max-h-20 overflow-y-auto no-scrollbar">
-                    <p className="text-[10px] text-slate-700 leading-tight font-medium" dangerouslySetInnerHTML={{ __html: selectedFeature.properties.description }}></p>
-                  </div>
                 ) : (
-                  <div className="flex-1 flex items-center justify-center italic text-slate-400 text-[10px]">
-                    Açıklama bulunmuyor
+                  <div className="flex flex-col gap-2">
+                    {/* Geometri Bilgileri */}
+                    <div className="flex flex-wrap gap-2">
+                      {selectedFeature.geometry.type === 'Point' && (
+                        <div className="flex-1 min-w-[140px] bg-blue-50/50 p-2 rounded-xl border border-blue-100/50">
+                          <p className="text-[8px] font-black text-blue-400 uppercase mb-0.5">Koordinatlar (WGS84)</p>
+                          <p className="text-[10px] font-black text-slate-900 tabular-nums">
+                            {selectedFeature.geometry.coordinates[1].toFixed(6)}, {selectedFeature.geometry.coordinates[0].toFixed(6)}
+                          </p>
+                        </div>
+                      )}
+                      {selectedFeature.geometry.type === 'LineString' && (
+                        <div className="flex-1 min-w-[140px] bg-emerald-50/50 p-2 rounded-xl border border-emerald-100/50">
+                          <p className="text-[8px] font-black text-emerald-400 uppercase mb-0.5">Toplam Uzunluk</p>
+                          <p className="text-[10px] font-black text-slate-900 tabular-nums">
+                            {(turf.length(selectedFeature, { units: 'meters' })).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} m
+                          </p>
+                        </div>
+                      )}
+                      {(selectedFeature.geometry.type === 'Polygon' || selectedFeature.geometry.type === 'MultiPolygon') && (
+                        <div className="flex-1 min-w-[140px] bg-amber-50/50 p-2 rounded-xl border border-amber-100/50">
+                          <p className="text-[8px] font-black text-amber-400 uppercase mb-0.5">Toplam Alan</p>
+                          <p className="text-[10px] font-black text-slate-900 tabular-nums">
+                            {(turf.area(selectedFeature)).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} m²
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Açıklama */}
+                    {selectedFeature.properties?.description ? (
+                      <div className="bg-slate-50/50 p-2 rounded-xl border border-slate-100/50 max-h-20 overflow-y-auto no-scrollbar">
+                        <p className="text-[10px] text-slate-700 leading-tight font-medium" dangerouslySetInnerHTML={{ __html: selectedFeature.properties.description }}></p>
+                      </div>
+                    ) : (
+                      <div className="italic text-slate-400 text-[9px] px-1">
+                        Açıklama bulunmuyor
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
