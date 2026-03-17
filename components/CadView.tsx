@@ -216,6 +216,45 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
       click(e) {
         if (activeTool === 'pan') return;
         if (activeTool === 'select') {
+          if (isSnappingEnabled && snapPoints && (combinedGeoJSON || drawnFeatures.length > 0)) {
+            const clickPt = turf.point([e.latlng.lng, e.latlng.lat]);
+            const nearest = turf.nearestPoint(clickPt, snapPoints);
+            if (nearest && nearest.geometry) {
+              const nearestLatLng = L.latLng(nearest.geometry.coordinates[1], nearest.geometry.coordinates[0]);
+              const clickContainerPt = map.latLngToContainerPoint(e.latlng);
+              const nearestContainerPt = map.latLngToContainerPoint(nearestLatLng);
+              
+              // Use a slightly larger radius for selection snapping (30px)
+              if (clickContainerPt.distanceTo(nearestContainerPt) < 30) {
+                const coord = nearest.geometry.coordinates;
+                
+                // Helper to find the parent feature of a vertex
+                const findInFeatures = (features: any[]) => features.find((f: any) => {
+                  if (f.geometry.type === 'Point') {
+                    return Math.abs(f.geometry.coordinates[0] - coord[0]) < 0.0000001 && 
+                           Math.abs(f.geometry.coordinates[1] - coord[1]) < 0.0000001;
+                  } else if (f.geometry.type === 'LineString') {
+                    return f.geometry.coordinates.some((c: any) => 
+                      Math.abs(c[0] - coord[0]) < 0.0000001 && Math.abs(c[1] - coord[1]) < 0.0000001
+                    );
+                  } else if (f.geometry.type === 'Polygon') {
+                    return f.geometry.coordinates[0].some((c: any) => 
+                      Math.abs(c[0] - coord[0]) < 0.0000001 && Math.abs(c[1] - coord[1]) < 0.0000001
+                    );
+                  }
+                  return false;
+                });
+
+                const foundFeature = (combinedGeoJSON?.features ? findInFeatures(combinedGeoJSON.features) : null) || 
+                                     findInFeatures(drawnFeatures);
+
+                if (foundFeature) {
+                  setSelectedFeature(foundFeature);
+                  return;
+                }
+              }
+            }
+          }
           setSelectedFeature(null);
           return;
         }
