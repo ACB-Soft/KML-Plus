@@ -16,16 +16,16 @@ const BrowserGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   const chromeUrl = getChromeURL(currentUrl);
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-slate-900 flex flex-col items-center justify-center p-8 text-center">
+    <div className="fixed inset-0 z-[9999] bg-slate-200 flex flex-col items-center justify-center p-8 text-center">
       <div className="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mb-8 animate-pulse">
-        <i className="fas fa-compass text-4xl text-blue-400"></i>
+        <i className="fas fa-compass text-4xl text-blue-600"></i>
       </div>
       
-      <h1 className="text-2xl font-black text-white mb-4 tracking-tight">
+      <h1 className="text-2xl font-black text-slate-900 mb-4 tracking-tight">
         Tarayıcı Uyumluluğu
       </h1>
       
-      <p className="text-slate-400 mb-10 leading-relaxed text-sm">
+      <p className="text-slate-600 mb-10 leading-relaxed text-sm">
         GPS hassasiyetinin en yüksek seviyede olması için uygulamayı harici bir tarayıcıda açmanız gerekmektedir.
       </p>
 

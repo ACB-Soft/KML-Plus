@@ -8,8 +8,8 @@ interface Props {
 
 const HelpView: React.FC<Props> = ({ onBack }) => {
   return (
-    <div className="flex-1 flex flex-col animate-in h-full overflow-hidden bg-[#F8FAFC]">
-      <header className="px-8 pt-6 pb-6 flex items-center gap-5 shrink-0 bg-white shadow-sm">
+    <div className="flex-1 flex flex-col animate-in h-full overflow-hidden bg-slate-200">
+      <header className="px-8 pt-6 pb-6 flex items-center gap-5 shrink-0 bg-slate-200 border-b border-slate-300">
         <button 
           onClick={onBack} 
           className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-md border border-slate-100 text-slate-800 active:scale-90 transition-all"
@@ -24,145 +24,134 @@ const HelpView: React.FC<Props> = ({ onBack }) => {
       <div className="flex-1 px-8 overflow-y-auto no-scrollbar py-4">
         <div className="max-w-sm mx-auto w-full space-y-10">
           {/* Kullanım Kılavuzu */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
-              <i className="fas fa-book"></i>
+          <section className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
+                <i className="fas fa-book"></i>
+              </div>
+              <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Kullanım Kılavuzu</h3>
             </div>
-            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Nasıl Kullanılır?</h3>
-          </div>
-          
-          <div className="space-y-4">
-            {/* Yeni Proje Oluştur */}
-            <div className="soft-card p-4 space-y-3">
-              <h4 className="font-black text-slate-900 text-base uppercase flex items-center gap-2">
-                <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs">1</span>
-                Yeni Proje Oluştur
-              </h4>
-              <p className="text-slate-900 text-sm leading-relaxed font-medium text-justify">
-                Ana ekrandaki <b>"Yeni Proje Oluştur"</b> butonuna tıklayarak yeni bir çalışma alanı yaratabilirsiniz.
-                <br/><br/>
-                • <b>KML/KMZ Yükleme:</b> İsteğe bağlı olarak cihazınızdaki KML veya KMZ dosyalarını projeye dahil edebilirsiniz.
-                <br/>
-                • <b>Proje İsimlendirme:</b> Projenize bir isim vererek daha sonra kolayca bulabilirsiniz.
-              </p>
-            </div>
-
-            {/* Projeye Devam Et */}
-            <div className="soft-card p-4 space-y-3">
-              <h4 className="font-black text-slate-900 text-base uppercase flex items-center gap-2">
-                <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs">2</span>
-                Projeye Devam Et
-              </h4>
-              <p className="text-slate-900 text-sm leading-relaxed font-medium text-justify">
-                Önceden oluşturduğunuz veya yüklediğiniz projelere <b>"Projeye Devam Et"</b> sekmesinden ulaşabilirsiniz.
-                <br/><br/>
-                • <b>Çoklu Seçim:</b> Birden fazla projeyi aynı anda seçerek harita üzerinde (CAD Görünümü) birlikte görüntüleyebilirsiniz.
-                <br/>
-                • <b>Proje Silme:</b> Artık ihtiyacınız olmayan projeleri çöp kutusu ikonu ile silebilirsiniz.
-              </p>
-            </div>
-
-            {/* CAD Görünümü ve Araçlar */}
-            <div className="soft-card p-4 space-y-3">
-              <h4 className="font-black text-slate-900 text-base uppercase flex items-center gap-2">
-                <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs">3</span>
-                CAD Görünümü ve Araçlar
-              </h4>
-              <p className="text-slate-900 text-sm leading-relaxed font-medium text-justify">
-                Harita ekranında projelerinizi görüntüleyebilir ve çeşitli araçları kullanabilirsiniz.
-                <br/><br/>
-                • <b>Kaydır (El İkonu):</b> Haritayı serbestçe kaydırmanızı sağlar.
-                <br/>
-                • <b>Obje Seç (İmleç İkonu):</b> Haritadaki KML objelerine tıklayarak detayları ekranın alt kısmında görebilirsiniz.
-                <br/>
-                • <b>Koordinat Sor (Hedef İkonu):</b> Haritaya tıkladığınız noktanın enlem ve boylam bilgilerini verir.
-                <br/>
-                • <b>Mesafe Ölç (Cetvel İkonu):</b> Haritaya tıklayarak noktalar arası mesafeyi ölçebilirsiniz.
-                <br/>
-                • <b>Alan Ölç (Çokgen İkonu):</b> Haritaya en az 3 nokta ekleyerek kapalı bir alanın yüzölçümünü hesaplayabilirsiniz.
-                <br/>
-                • <b>Katman Yönetimi:</b> Katmanlar panelinden projeleri açıp kapatabilir, büyüteç ikonu ile ilgili katmana odaklanabilirsiniz.
-                <br/>
-                • <b>Obje Yakalama (Snapping):</b> Mevcut KML objelerinin köşelerine otomatik olarak kilitlenmenizi sağlar.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Veri Güvenliği */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-200">
-              <i className="fas fa-shield-alt"></i>
-            </div>
-            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Veri Güvenliği</h3>
-          </div>
-          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6">
-            <p className="text-emerald-900 text-sm leading-relaxed font-medium text-justify">
-              Verileriniz tamamen cihazınızda (tarayıcı önbelleğinde) saklanır. Uygulama, konum verilerinizi veya yüklediğiniz KML dosyalarını hiçbir uzak sunucuya göndermez. Tarayıcı önbelleğini temizlediğinizde verilerinizin silineceğini unutmayın.
-            </p>
-          </div>
-        </section>
-
-        {/* Veri Kaynağı */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-amber-200">
-              <i className="fas fa-database"></i>
-            </div>
-            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Veri Kaynağı</h3>
-          </div>
-          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-6">
-            <p className="text-amber-900 text-sm leading-relaxed font-medium text-justify">
-              Uygulamada kullanılan harita katmanları ve coğrafi veriler açık kaynaklı servislerden (OpenStreetMap, OpenTopoMap, Google Maps API) sağlanmaktadır. Yüklediğiniz KML/KMZ dosyaları tamamen sizin sorumluluğunuzdadır.
-            </p>
-          </div>
-        </section>
-
-        {/* Telif Hakları */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-slate-200">
-              <i className="fas fa-copyright"></i>
-            </div>
-            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Yasal Bilgilendirme</h3>
-          </div>
-          <div className="bg-slate-100 border border-slate-200 rounded-2xl p-6">
-            <p className="text-slate-700 text-sm leading-relaxed font-medium text-justify italic">
-              "Bu uygulama telif ihlali barındıran içerik içermemektedir. Tüm yazılım ve tasarım hakları saklıdır."
-            </p>
-          </div>
-        </section>
-
-        {/* Hakkında */}
-        <section className="space-y-4 pb-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
-              <i className="fas fa-info-circle"></i>
-            </div>
-            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Uygulama Hakkında</h3>
-          </div>
-          <div className="soft-card p-6 space-y-4">
-            <p className="text-slate-900 text-sm leading-relaxed font-medium text-justify">
-              <b>KML Plus</b>, arazi çalışmalarında ve ofis süreçlerinde KML/KMZ verilerini en hızlı ve verimli şekilde yönetmeniz için geliştirilmiş profesyonel bir CBS (Coğrafi Bilgi Sistemi) aracıdır.
-              <br/><br/>
-              Google Earth standartlarında görselleştirme, hassas ölçüm araçları ve gelişmiş obje yakalama (snapping) özellikleri ile projelerinizi mobil cihazınızdan kolayca yönetebilirsiniz.
-            </p>
             
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Yazılım & Tasarım</p>
-                <p className="text-sm font-black text-slate-900">ACB_Soft Engineering</p>
+            <div className="space-y-4">
+              {/* Proje Yönetimi */}
+              <div className="soft-card p-4 space-y-3">
+                <h4 className="font-black text-slate-900 text-base uppercase flex items-center gap-2">
+                  <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs">1</span>
+                  Proje Başlatma
+                </h4>
+                <p className="text-slate-900 text-sm leading-relaxed font-medium text-justify">
+                  Uygulama iki ana yöntemle proje başlatmanıza olanak tanır:
+                  <br/><br/>
+                  • <b>Yeni Proje Oluştur:</b> Sıfırdan bir çalışma alanı açar. Kendi çizimlerinizi yapabilir veya daha sonra veri ekleyebilirsiniz.
+                  <br/>
+                  • <b>Yeni Proje Yükle:</b> Cihazınızdaki mevcut <b>.kml</b> veya <b>.kmz</b> dosyalarını içe aktararak hızlıca görüntüleme yapmanızı sağlar.
+                </p>
               </div>
-              <div className="text-right">
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Sürüm</p>
-                <p className="text-sm font-black text-blue-600">{APP_VERSION}</p>
+
+              {/* Harita Araçları */}
+              <div className="soft-card p-4 space-y-3">
+                <h4 className="font-black text-slate-900 text-base uppercase flex items-center gap-2">
+                  <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs">2</span>
+                  Gelişmiş Araçlar
+                </h4>
+                <p className="text-slate-900 text-sm leading-relaxed font-medium text-justify">
+                  CAD Görünümü içerisinde profesyonel ölçüm ve analiz araçları bulunur:
+                  <br/><br/>
+                  • <b>Hassas Ölçüm:</b> Mesafe ve alan ölçümlerinde "Snapping" (Obje Yakalama) özelliği ile KML objelerinin köşelerine tam isabetle kilitlenebilirsiniz.
+                  <br/>
+                  • <b>Koordinat Sorgulama:</b> Harita üzerinde herhangi bir noktaya dokunarak anlık WGS84 koordinatlarını alabilirsiniz.
+                  <br/>
+                  • <b>Katman Kontrolü:</b> Birden fazla projeyi aynı anda açabilir, görünürlüklerini yönetebilir ve odaklanma (zoom) yapabilirsiniz.
+                </p>
               </div>
             </div>
-          </div>
-        </section>
-      </div>
+          </section>
+
+          {/* Sıkça Sorulan Sorular */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-purple-200">
+                <i className="fas fa-question-circle"></i>
+              </div>
+              <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Sıkça Sorulan Sorular</h3>
+            </div>
+            
+            <div className="space-y-3">
+              <details className="soft-card p-4 group cursor-pointer">
+                <summary className="font-bold text-slate-900 text-sm uppercase flex items-center justify-between list-none">
+                  Dosyalarım nerede saklanıyor?
+                  <i className="fas fa-chevron-down text-[10px] group-open:rotate-180 transition-transform"></i>
+                </summary>
+                <p className="text-slate-600 text-xs mt-3 leading-relaxed font-medium">
+                  Tüm verileriniz tarayıcınızın yerel depolama alanında (IndexedDB) saklanır. Hiçbir veri buluta veya sunucuya yüklenmez.
+                </p>
+              </details>
+
+              <details className="soft-card p-4 group cursor-pointer">
+                <summary className="font-bold text-slate-900 text-sm uppercase flex items-center justify-between list-none">
+                  Büyük dosyalar performansı etkiler mi?
+                  <i className="fas fa-chevron-down text-[10px] group-open:rotate-180 transition-transform"></i>
+                </summary>
+                <p className="text-slate-600 text-xs mt-3 leading-relaxed font-medium">
+                  Çok karmaşık ve binlerce nokta içeren KML dosyaları mobil cihazlarda yavaşlamaya neden olabilir. Optimize edilmiş dosyalar kullanmanız önerilir.
+                </p>
+              </details>
+
+              <details className="soft-card p-4 group cursor-pointer">
+                <summary className="font-bold text-slate-900 text-sm uppercase flex items-center justify-between list-none">
+                  Çevrimdışı çalışabilir miyim?
+                  <i className="fas fa-chevron-down text-[10px] group-open:rotate-180 transition-transform"></i>
+                </summary>
+                <p className="text-slate-600 text-xs mt-3 leading-relaxed font-medium">
+                  Uygulama arayüzü çevrimdışı çalışabilir ancak harita altlıklarının (Google/OSM) yüklenmesi için internet bağlantısı gereklidir.
+                </p>
+              </details>
+            </div>
+          </section>
+
+          {/* Veri Güvenliği */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-200">
+                <i className="fas fa-shield-alt"></i>
+              </div>
+              <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Gizlilik ve Güvenlik</h3>
+            </div>
+            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6">
+              <p className="text-emerald-900 text-sm leading-relaxed font-medium text-justify">
+                <b>KML Plus</b> gizlilik odaklıdır. Konum verileriniz sadece anlık ölçümler için kullanılır ve asla kaydedilmez. Projeleriniz sadece sizin cihazınızda yaşar.
+              </p>
+            </div>
+          </section>
+
+          {/* Hakkında */}
+          <section className="space-y-4 pb-10">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                <i className="fas fa-info-circle"></i>
+              </div>
+              <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Vizyonumuz</h3>
+            </div>
+            <div className="soft-card p-6 space-y-4">
+              <p className="text-slate-900 text-sm leading-relaxed font-medium text-justify">
+                Amacımız, arazi mühendisleri, mimarlar ve CBS uzmanları için en hafif, en hızlı ve en güvenilir mobil KML görüntüleme deneyimini sunmaktır. 
+                <br/><br/>
+                Sürekli güncellenen araç setimizle, karmaşık coğrafi verileri cebinizde taşınabilir hale getiriyoruz.
+              </p>
+              
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Geliştirici</p>
+                  <p className="text-sm font-black text-slate-900">ACB_Soft Engineering</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Versiyon</p>
+                  <p className="text-sm font-black text-blue-600">{APP_VERSION}</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
       
       <GlobalFooter />

@@ -42,8 +42,8 @@ const CreateProjectView: React.FC<Props> = ({ onBack, onProjectCreated }) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-[#F8FAFC] animate-in h-full overflow-y-auto no-scrollbar">
-      <header className="px-8 pt-6 pb-6 flex items-center gap-5 shrink-0 bg-white shadow-sm z-10">
+    <div className="flex-1 flex flex-col bg-slate-200 animate-in h-full overflow-y-auto no-scrollbar">
+      <header className="px-8 pt-6 pb-6 flex items-center gap-5 shrink-0 bg-slate-200 border-b border-slate-300 z-10">
         <button onClick={onBack} className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-md border border-slate-100 text-slate-800 active:scale-90 transition-all">
           <i className="fas fa-chevron-left text-sm"></i>
         </button>

@@ -7,7 +7,7 @@ interface Props {
 
 const AboutView: React.FC<Props> = ({ onBack }) => {
   return (
-    <div className="flex-1 flex flex-col bg-white animate-in slide-in-from-right duration-300">
+    <div className="flex-1 flex flex-col bg-slate-200 animate-in slide-in-from-right duration-300">
       {/* Header */}
       <header className="px-6 pt-12 pb-6 shrink-0 flex items-center gap-4">
         <button 

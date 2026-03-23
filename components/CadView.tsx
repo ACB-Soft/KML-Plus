@@ -474,7 +474,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-900 h-full relative overflow-hidden">
+    <div className="flex-1 flex flex-col bg-slate-200 h-full relative overflow-hidden">
       {/* Header overlay */}
       <div className="absolute top-0 left-0 right-0 z-[1000] p-4 flex items-center justify-between pointer-events-none">
         <button 

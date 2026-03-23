@@ -115,7 +115,7 @@ const App = () => {
   };
 
   return (
-    <div className="h-full bg-white font-sans text-slate-900 overflow-hidden flex flex-col">
+    <div className="h-full bg-slate-200 font-sans text-slate-900 overflow-hidden flex flex-col">
       <div className="flex-1 flex flex-col relative overflow-hidden h-full">
         
         {view === 'onboarding' && (
