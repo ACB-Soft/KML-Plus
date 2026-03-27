@@ -49,7 +49,8 @@ const ProjectListView: React.FC<Props> = ({ projects, onBack, onContinue, onDele
           }`}
         >
           <i className="fas fa-map-location-dot text-lg"></i>
-          CAD Görünümü {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
+          <span>CAD Görünümü {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}</span>
+          <i className="fas fa-arrow-right text-xs ml-1 opacity-70"></i>
         </button>
 
         {projects.length > 0 && (

@@ -10,9 +10,10 @@ interface Props {
   onShowHelp: () => void;
   onShowSettings: () => void;
   onShowAbout: () => void;
+  onShowConversion: () => void;
 }
 
-const Dashboard: React.FC<Props> = ({ onCreateProject, onStartCapture, onStakeout, onShowList, onShowExport, onShowHelp, onShowSettings }) => {
+const Dashboard: React.FC<Props> = ({ onCreateProject, onStartCapture, onStakeout, onShowList, onShowExport, onShowHelp, onShowSettings, onShowConversion }) => {
   return (
     <div className="flex-1 flex flex-col bg-slate-200 animate-in px-8 pt-20 md:pt-28 justify-start relative">
       {/* Dil / Bayrak - Sol Üst Köşe */}
@@ -73,46 +74,46 @@ const Dashboard: React.FC<Props> = ({ onCreateProject, onStartCapture, onStakeou
       <main className="w-full max-w-sm mx-auto flex flex-col space-y-2.5 md:space-y-3">
         {/* Ana Menü - Ultra kompakt ve dikey sıralı */}
         
-        {/* Yeni Proje Oluştur */}
+        {/* Proje Oluştur (Mavi Buton) */}
         <button 
           onClick={onCreateProject}
           className="w-full py-3 md:py-4 px-5 bg-blue-600 text-white rounded-xl md:rounded-2xl shadow-lg shadow-blue-600/30 active:scale-[0.98] transition-all flex items-center justify-between group relative overflow-hidden border border-white/10"
         >
           <div className="relative z-10 flex items-center gap-3">
             <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30">
-              <i className="fas fa-plus text-base md:text-lg text-white"></i>
-            </div>
-            <span className="text-sm md:text-base font-black tracking-tight leading-none uppercase">Yeni Proje Oluştur</span>
-          </div>
-          <i className="fas fa-chevron-right text-white/40 group-hover:translate-x-1 transition-transform text-[10px]"></i>
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-6 -mt-6 blur-xl"></div>
-        </button>
-
-        {/* Yeni Proje Yükle */}
-        <button 
-          onClick={onStartCapture}
-          className="w-full py-3 md:py-4 px-5 bg-emerald-600 text-white rounded-xl md:rounded-2xl shadow-lg shadow-emerald-600/30 active:scale-[0.98] transition-all flex items-center justify-between group relative overflow-hidden border border-white/10"
-        >
-          <div className="relative z-10 flex items-center gap-3">
-            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30">
               <i className="fas fa-folder-plus text-base md:text-lg text-white"></i>
             </div>
-            <span className="text-sm md:text-base font-black tracking-tight leading-none uppercase">Yeni Proje Yükle</span>
+            <span className="text-sm md:text-base font-black tracking-tight leading-none uppercase">Proje Oluştur</span>
           </div>
           <i className="fas fa-chevron-right text-white/40 group-hover:translate-x-1 transition-transform text-[10px]"></i>
           <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-6 -mt-6 blur-xl"></div>
         </button>
 
-        {/* Projeye Devam Et */}
+        {/* Kayıtlı Projeler (Yeşil Buton) */}
         <button 
           onClick={onStakeout}
-          className="w-full py-3 md:py-4 px-5 bg-slate-800 text-white rounded-xl md:rounded-2xl shadow-lg shadow-slate-800/30 active:scale-[0.98] transition-all flex items-center justify-between group relative overflow-hidden border border-white/10"
+          className="w-full py-3 md:py-4 px-5 bg-emerald-600 text-white rounded-xl md:rounded-2xl shadow-lg shadow-emerald-600/30 active:scale-[0.98] transition-all flex items-center justify-between group relative overflow-hidden border border-white/10"
         >
           <div className="relative z-10 flex items-center gap-3">
             <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30">
               <i className="fas fa-map-location-dot text-base md:text-lg text-white"></i>
             </div>
             <span className="text-sm md:text-base font-black tracking-tight leading-none uppercase">Kayıtlı Projeler</span>
+          </div>
+          <i className="fas fa-chevron-right text-white/40 group-hover:translate-x-1 transition-transform text-[10px]"></i>
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-6 -mt-6 blur-xl"></div>
+        </button>
+
+        {/* KML Dönüşümü (Koyu Gri Buton) */}
+        <button 
+          onClick={onShowConversion}
+          className="w-full py-3 md:py-4 px-5 bg-slate-800 text-white rounded-xl md:rounded-2xl shadow-lg shadow-slate-800/30 active:scale-[0.98] transition-all flex items-center justify-between group relative overflow-hidden border border-white/10"
+        >
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30">
+              <i className="fas fa-sync text-base md:text-lg text-white"></i>
+            </div>
+            <span className="text-sm md:text-base font-black tracking-tight leading-none uppercase">KML Dönüşümü</span>
           </div>
           <i className="fas fa-chevron-right text-white/40 group-hover:translate-x-1 transition-transform text-[10px]"></i>
           <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-6 -mt-6 blur-xl"></div>

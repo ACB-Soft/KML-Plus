@@ -499,7 +499,11 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         sticky={true}
         rightElement={
           <div className="flex items-center gap-3">
-            <button onClick={handleSaveAs} className="flex flex-col items-center text-blue-600 hover:text-blue-700 active:scale-95 transition-all" title="Farklı Kaydet">
+            <button 
+              onClick={handleSaveAs} 
+              className="flex flex-col items-center text-blue-600 hover:text-blue-700 active:scale-95 transition-all" 
+              title="Farklı Kaydet"
+            >
               <i className="fas fa-save text-lg"></i>
               <span className="text-[8px] font-black uppercase mt-0.5 text-center leading-tight">Farklı<br/>Kaydet</span>
             </button>
@@ -513,7 +517,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
       <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-1.5 pointer-events-auto">
         <button 
           onClick={() => handleToolChange('pan')} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'pan' ? 'bg-blue-600 text-white scale-110' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100'}`}
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all border ${activeTool === 'pan' ? 'bg-blue-600 text-white scale-110 border-white/20' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100 border-slate-300'}`}
           title="Ekranı Kaydır"
         >
           <i className="fas fa-hand-paper text-sm"></i>
@@ -521,7 +525,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         </button>
         <button 
           onClick={() => handleToolChange('select')} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'select' ? 'bg-purple-600 text-white scale-110' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100'}`}
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all border ${activeTool === 'select' ? 'bg-purple-600 text-white scale-110 border-white/20' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100 border-slate-300'}`}
           title="Obje Seç"
         >
           <i className="fas fa-mouse-pointer text-sm"></i>
@@ -529,7 +533,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         </button>
         <button 
           onClick={() => handleToolChange('query_point')} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'query_point' ? 'bg-indigo-600 text-white scale-110' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100'}`}
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all border ${activeTool === 'query_point' ? 'bg-indigo-600 text-white scale-110 border-white/20' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100 border-slate-300'}`}
           title="Koordinat Sor"
         >
           <i className="fas fa-crosshairs text-sm"></i>
@@ -537,7 +541,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         </button>
         <button 
           onClick={() => handleToolChange('distance')} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'distance' ? 'bg-emerald-600 text-white scale-110' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100'}`}
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all border ${activeTool === 'distance' ? 'bg-emerald-600 text-white scale-110 border-white/20' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100 border-slate-300'}`}
           title="Mesafe Hesapla"
         >
           <i className="fas fa-ruler text-sm"></i>
@@ -545,7 +549,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         </button>
         <button 
           onClick={() => handleToolChange('area')} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'area' ? 'bg-amber-500 text-white scale-110' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100'}`}
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all border ${activeTool === 'area' ? 'bg-amber-500 text-white scale-110 border-white/20' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100 border-slate-300'}`}
           title="Alan Hesapla"
         >
           <i className="fas fa-draw-polygon text-sm"></i>
@@ -554,7 +558,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         
         <button 
           onClick={handleFitBounds} 
-          className="w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100 hover:text-blue-600"
+          className="w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100 hover:text-blue-600 border border-slate-300"
           title="Limit Bul"
         >
           <i className="fas fa-expand text-sm"></i>
@@ -566,7 +570,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
       <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-1.5 pointer-events-auto">
         <button 
           onClick={handleLocate} 
-          className="w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100 hover:text-blue-600"
+          className="w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100 hover:text-blue-600 border border-slate-300"
           title="Mevcut Konum"
         >
           <i className="fas fa-location-crosshairs text-sm"></i>
@@ -574,7 +578,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         </button>
         <button 
           onClick={() => setIsSnappingEnabled(!isSnappingEnabled)} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${isSnappingEnabled ? 'bg-orange-600 text-white' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100'}`}
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all border ${isSnappingEnabled ? 'bg-orange-600 text-white border-white/20' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100 border-slate-300'}`}
           title="Obje Yakala"
         >
           <i className={`fas ${isSnappingEnabled ? 'fa-magnet' : 'fa-magnet text-slate-400'} text-sm`}></i>
@@ -583,7 +587,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
 
         <button 
           onClick={() => handleToolChange('draw_point')} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'draw_point' ? 'bg-violet-600 text-white scale-110' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100'}`}
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all border ${activeTool === 'draw_point' ? 'bg-violet-600 text-white scale-110 border-white/20' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100 border-slate-300'}`}
           title="Nokta Ekle"
         >
           <i className="fas fa-map-pin text-sm"></i>
@@ -591,7 +595,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         </button>
         <button 
           onClick={() => handleToolChange('draw_line')} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'draw_line' ? 'bg-violet-600 text-white scale-110' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100'}`}
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all border ${activeTool === 'draw_line' ? 'bg-violet-600 text-white scale-110 border-white/20' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100 border-slate-300'}`}
           title="Çizgi Ekle"
         >
           <i className="fas fa-project-diagram text-sm"></i>
@@ -599,7 +603,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         </button>
         <button 
           onClick={() => handleToolChange('draw_area')} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'draw_area' ? 'bg-violet-600 text-white scale-110' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100'}`}
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all border ${activeTool === 'draw_area' ? 'bg-violet-600 text-white scale-110 border-white/20' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100 border-slate-300'}`}
           title="Alan Ekle"
         >
           <i className="fas fa-draw-polygon text-sm"></i>
@@ -614,7 +618,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
             setNamingFeature(null);
             setMeasurePoints([]);
           }} 
-          className="w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all bg-emerald-600 text-white hover:bg-emerald-700 mt-1"
+          className="w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all bg-emerald-600 text-white hover:bg-emerald-700 mt-1 border border-white/20"
           title="Harita Altlığı"
         >
           <i className="fas fa-map-marked-alt text-sm"></i>

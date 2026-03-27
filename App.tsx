@@ -6,6 +6,8 @@ import HelpView from './components/HelpView';
 import GlobalFooter from './components/GlobalFooter';
 import NewProjectView from './components/NewProjectView';
 import ProjectListView from './components/ProjectListView';
+import ProjectActionView from './components/ProjectActionView';
+import ConversionView from './components/ConversionView';
 import CadView from './components/CadView';
 import AboutView from './components/AboutView';
 import SettingsView from './components/SettingsView';
@@ -14,7 +16,7 @@ import { SavedLocation, Project } from './types';
 import { geoidService } from './services/GeoidService';
 
 const App = () => {
-  type ViewType = 'onboarding' | 'dashboard' | 'help' | 'newProject' | 'createProject' | 'projectList' | 'cadView' | 'about' | 'settings';
+  type ViewType = 'onboarding' | 'dashboard' | 'help' | 'newProject' | 'createProject' | 'projectAction' | 'projectList' | 'cadView' | 'about' | 'settings' | 'conversion';
   const [view, setView] = useState<ViewType>('onboarding');
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjects, setSelectedProjects] = useState<Project[]>([]);
@@ -128,7 +130,7 @@ const App = () => {
         {view === 'dashboard' && (
           <div className="flex-1 flex flex-col overflow-y-auto h-full no-scrollbar">
             <Dashboard 
-              onCreateProject={() => navigateTo('createProject')}
+              onCreateProject={() => navigateTo('projectAction')}
               onStartCapture={() => navigateTo('newProject')} 
               onStakeout={() => navigateTo('projectList')}
               onShowList={() => {}}
@@ -136,9 +138,22 @@ const App = () => {
               onShowHelp={() => navigateTo('help')}
               onShowAbout={() => navigateTo('about')}
               onShowSettings={() => navigateTo('settings')}
+              onShowConversion={() => navigateTo('conversion')}
             />
             <GlobalFooter />
           </div>
+        )}
+
+        {view === 'conversion' && (
+          <ConversionView onBack={resetToDashboard} />
+        )}
+
+        {view === 'projectAction' && (
+          <ProjectActionView 
+            onBack={resetToDashboard}
+            onCreateManual={() => navigateTo('createProject')}
+            onUploadFile={() => navigateTo('newProject')}
+          />
         )}
 
         {view === 'createProject' && (
