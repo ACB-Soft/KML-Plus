@@ -12,8 +12,13 @@ interface Props {
 
 const ProjectListView: React.FC<Props> = ({ projects, onBack, onContinue, onDeleteProject }) => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const toggleSelection = (id: string) => {
+    if (confirmingId) {
+      setConfirmingId(null);
+      return;
+    }
     const newSelection = new Set(selectedIds);
     if (newSelection.has(id)) {
       newSelection.delete(id);
@@ -28,6 +33,14 @@ const ProjectListView: React.FC<Props> = ({ projects, onBack, onContinue, onDele
     if (selectedProjects.length > 0) {
       onContinue(selectedProjects);
     }
+  };
+
+  const handleDelete = (id: string) => {
+    onDeleteProject(id);
+    const newSelection = new Set(selectedIds);
+    newSelection.delete(id);
+    setSelectedIds(newSelection);
+    setConfirmingId(null);
   };
 
   return (
@@ -70,12 +83,39 @@ const ProjectListView: React.FC<Props> = ({ projects, onBack, onContinue, onDele
             <div 
               key={project.id}
               onClick={() => toggleSelection(project.id)}
-              className={`w-full bg-white rounded-2xl p-5 border-2 transition-all cursor-pointer flex items-center gap-4 ${
+              className={`w-full bg-white rounded-2xl p-5 border-2 transition-all cursor-pointer flex items-center gap-4 relative overflow-hidden ${
                 selectedIds.has(project.id) 
                   ? 'border-blue-500 shadow-md shadow-blue-500/10' 
                   : 'border-slate-100 shadow-sm hover:border-blue-200'
               }`}
             >
+              {/* Confirm Overlay */}
+              {confirmingId === project.id && (
+                <div className="absolute inset-0 bg-red-600 z-20 flex items-center justify-between px-6 animate-in fade-in slide-in-from-right-4 duration-200">
+                  <span className="text-white font-black text-xs uppercase tracking-widest">Silinsin mi?</span>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmingId(null);
+                      }}
+                      className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl text-[10px] font-black uppercase transition-colors"
+                    >
+                      İptal
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(project.id);
+                      }}
+                      className="px-4 py-2 bg-white text-red-600 rounded-xl text-[10px] font-black uppercase shadow-lg transition-transform active:scale-95"
+                    >
+                      Evet, Sil
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
                 selectedIds.has(project.id)
                   ? 'bg-blue-500 border-blue-500 text-white'
@@ -94,14 +134,10 @@ const ProjectListView: React.FC<Props> = ({ projects, onBack, onContinue, onDele
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (window.confirm('Bu projeyi silmek istediğinize emin misiniz?')) {
-                    onDeleteProject(project.id);
-                    const newSelection = new Set(selectedIds);
-                    newSelection.delete(project.id);
-                    setSelectedIds(newSelection);
-                  }
+                  setConfirmingId(project.id);
                 }}
                 className="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-100 active:scale-90 transition-all shrink-0"
+                title="Projeyi Sil"
               >
                 <i className="fas fa-trash-alt"></i>
               </button>

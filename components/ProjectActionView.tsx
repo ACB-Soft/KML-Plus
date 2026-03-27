@@ -22,31 +22,35 @@ const ProjectActionView: React.FC<Props> = ({ onBack, onCreateManual, onUploadFi
         {/* Manuel Proje Oluştur */}
         <button 
           onClick={onCreateManual}
-          className="w-full h-32 p-6 bg-white rounded-3xl shadow-xl shadow-blue-900/5 border border-blue-50 flex items-center gap-5 group active:scale-[0.98] transition-all hover:border-blue-200"
+          className="w-full py-3 md:py-4 px-5 bg-white rounded-xl md:rounded-2xl shadow-lg shadow-blue-900/5 border border-blue-50 flex items-center justify-between group active:scale-[0.98] transition-all hover:border-blue-200"
         >
-          <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/20 group-hover:scale-110 transition-transform shrink-0">
-            <i className="fas fa-edit text-xl"></i>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/20 group-hover:scale-110 transition-transform shrink-0">
+              <i className="fas fa-edit text-sm md:text-base"></i>
+            </div>
+            <div className="text-left">
+              <h3 className="font-black text-slate-800 uppercase text-xs md:text-sm tracking-tight leading-none">Boş Proje Oluştur</h3>
+              <p className="text-slate-500 text-[10px] mt-0.5 font-bold leading-tight">Manuel yeni çalışma alanı</p>
+            </div>
           </div>
-          <div className="flex-1 text-left">
-            <h3 className="font-black text-slate-800 uppercase text-sm tracking-wide">Boş Proje Oluştur</h3>
-            <p className="text-slate-500 text-[11px] mt-1 font-bold leading-tight">Manuel olarak isim vererek yeni bir çalışma alanı açın.</p>
-          </div>
-          <i className="fas fa-chevron-right text-slate-300 group-hover:translate-x-1 transition-transform"></i>
+          <i className="fas fa-chevron-right text-slate-300 group-hover:translate-x-1 transition-transform text-[10px]"></i>
         </button>
 
         {/* Dosya Yükle */}
         <button 
           onClick={onUploadFile}
-          className="w-full h-32 p-6 bg-white rounded-3xl shadow-xl shadow-emerald-900/5 border border-emerald-50 flex items-center gap-5 group active:scale-[0.98] transition-all hover:border-emerald-200"
+          className="w-full py-3 md:py-4 px-5 bg-white rounded-xl md:rounded-2xl shadow-lg shadow-emerald-900/5 border border-emerald-50 flex items-center justify-between group active:scale-[0.98] transition-all hover:border-emerald-200"
         >
-          <div className="w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/20 group-hover:scale-110 transition-transform shrink-0">
-            <i className="fas fa-file-import text-xl"></i>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/20 group-hover:scale-110 transition-transform shrink-0">
+              <i className="fas fa-file-import text-sm md:text-base"></i>
+            </div>
+            <div className="text-left">
+              <h3 className="font-black text-slate-800 uppercase text-xs md:text-sm tracking-tight leading-none">Dosyadan Proje Yükle</h3>
+              <p className="text-slate-500 text-[10px] mt-0.5 font-bold leading-tight">KML veya KMZ dosyalarını aktarın</p>
+            </div>
           </div>
-          <div className="flex-1 text-left">
-            <h3 className="font-black text-slate-800 uppercase text-sm tracking-wide">Dosyadan Proje Yükle</h3>
-            <p className="text-slate-500 text-[11px] mt-1 font-bold leading-tight">Cihazınızdaki KML veya KMZ dosyalarını içe aktarın.</p>
-          </div>
-          <i className="fas fa-chevron-right text-slate-300 group-hover:translate-x-1 transition-transform"></i>
+          <i className="fas fa-chevron-right text-slate-300 group-hover:translate-x-1 transition-transform text-[10px]"></i>
         </button>
       </div>
       

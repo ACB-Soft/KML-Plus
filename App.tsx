@@ -82,12 +82,10 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    // Sadece projeler değiştiğinde kaydet
-    if (projects.length > 0) {
-      localforage.setItem('kml_projects_v1.1.0', projects).catch(e => {
-        console.error("Projeler kaydedilirken hata oluştu:", e);
-      });
-    }
+    // Projeler değiştiğinde kaydet (boş olsa bile)
+    localforage.setItem('kml_projects_v1.1.0', projects).catch(e => {
+      console.error("Projeler kaydedilirken hata oluştu:", e);
+    });
   }, [projects]);
 
   const handleFinishOnboarding = () => {
