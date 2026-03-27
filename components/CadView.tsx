@@ -7,6 +7,8 @@ import * as turf from '@turf/turf';
 import tokml from 'tokml';
 import { convertCoordinate } from '../utils/CoordinateUtils';
 import { APP_VERSION } from '../version';
+import Header from './Header';
+import GlobalFooter from './GlobalFooter';
 
 interface Props {
   projects: Project[];
@@ -93,8 +95,24 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
     const allFeatures: any[] = [];
     
     projects.forEach(project => {
-      if (project.geojsonData && project.geojsonData.features) {
-        const projectFeatures = project.geojsonData.features.map((f: any) => ({
+      if (project.geojsonData) {
+        let features: any[] = [];
+        
+        if (Array.isArray(project.geojsonData)) {
+          features = project.geojsonData;
+        } else if (project.geojsonData.type === 'FeatureCollection') {
+          features = project.geojsonData.features || [];
+        } else if (project.geojsonData.type === 'Feature') {
+          features = [project.geojsonData];
+        } else if (project.geojsonData.type === 'GeometryCollection') {
+          features = (project.geojsonData.geometries || []).map((g: any) => ({
+            type: 'Feature',
+            geometry: g,
+            properties: {}
+          }));
+        }
+
+        const projectFeatures = features.map((f: any) => ({
           ...f,
           properties: {
             ...f.properties,
@@ -475,47 +493,27 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
 
   return (
     <div className="flex-1 flex flex-col bg-slate-200 h-full relative overflow-hidden">
-      {/* Header overlay */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] p-4 flex items-center justify-between pointer-events-none">
-        <button 
-          onClick={onBack} 
-          className="w-12 h-12 bg-white/90 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-lg border border-white/20 text-slate-800 active:scale-90 transition-all pointer-events-auto"
-        >
-          <i className="fas fa-chevron-left text-sm"></i>
-        </button>
-        <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl shadow-lg border border-white/20 pointer-events-auto flex items-center gap-3">
-          <button 
-            onClick={() => {
-              setTempMapType(mapType);
-              setIsSelectingMap(true);
-              setSelectedFeature(null);
-              setNamingFeature(null);
-              setMeasurePoints([]);
-            }} 
-            className="flex flex-col items-center text-emerald-600 hover:text-emerald-700 active:scale-95 transition-all" 
-            title="Harita Altlığı Değiştir"
-          >
-            <i className="fas fa-map-marked-alt text-lg"></i>
-            <span className="text-[8px] font-black uppercase mt-0.5 text-center leading-tight">Harita<br/>Altlığı</span>
-          </button>
-          <div className="w-px h-8 bg-slate-200"></div>
-          <button onClick={handleSaveAs} className="flex flex-col items-center text-blue-600 hover:text-blue-700 active:scale-95 transition-all" title="Farklı Kaydet">
-            <i className="fas fa-save text-lg"></i>
-            <span className="text-[8px] font-black uppercase mt-0.5 text-center leading-tight">Farklı<br/>Kaydet</span>
-          </button>
-          <div className="w-px h-8 bg-slate-200"></div>
-          <div>
-            <h2 className="text-sm font-black text-slate-900 tracking-tight">CAD Görünümü</h2>
-            <p className="text-[10px] font-bold text-slate-500">{projects.length} Proje Aktif</p>
+      <Header 
+        title="CAD Görünümü" 
+        onBack={onBack} 
+        sticky={true}
+        rightElement={
+          <div className="flex items-center gap-3">
+            <button onClick={handleSaveAs} className="flex flex-col items-center text-blue-600 hover:text-blue-700 active:scale-95 transition-all" title="Farklı Kaydet">
+              <i className="fas fa-save text-lg"></i>
+              <span className="text-[8px] font-black uppercase mt-0.5 text-center leading-tight">Farklı<br/>Kaydet</span>
+            </button>
           </div>
-        </div>
-      </div>
+        }
+      />
+
+      <div className="flex-1 relative">
 
       {/* CAD Tools Panel */}
-      <div className="absolute top-24 left-4 z-[1000] flex flex-col gap-3 pointer-events-auto">
+      <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-1.5 pointer-events-auto">
         <button 
           onClick={() => handleToolChange('pan')} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'pan' ? 'bg-blue-600 text-white scale-110' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white'}`}
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'pan' ? 'bg-blue-600 text-white scale-110' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100'}`}
           title="Ekranı Kaydır"
         >
           <i className="fas fa-hand-paper text-sm"></i>
@@ -523,7 +521,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         </button>
         <button 
           onClick={() => handleToolChange('select')} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'select' ? 'bg-purple-600 text-white scale-110' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white'}`}
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'select' ? 'bg-purple-600 text-white scale-110' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100'}`}
           title="Obje Seç"
         >
           <i className="fas fa-mouse-pointer text-sm"></i>
@@ -531,7 +529,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         </button>
         <button 
           onClick={() => handleToolChange('query_point')} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'query_point' ? 'bg-indigo-600 text-white scale-110' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white'}`}
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'query_point' ? 'bg-indigo-600 text-white scale-110' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100'}`}
           title="Koordinat Sor"
         >
           <i className="fas fa-crosshairs text-sm"></i>
@@ -539,7 +537,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         </button>
         <button 
           onClick={() => handleToolChange('distance')} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'distance' ? 'bg-emerald-600 text-white scale-110' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white'}`}
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'distance' ? 'bg-emerald-600 text-white scale-110' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100'}`}
           title="Mesafe Hesapla"
         >
           <i className="fas fa-ruler text-sm"></i>
@@ -547,7 +545,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         </button>
         <button 
           onClick={() => handleToolChange('area')} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'area' ? 'bg-amber-500 text-white scale-110' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white'}`}
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'area' ? 'bg-amber-500 text-white scale-110' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100'}`}
           title="Alan Hesapla"
         >
           <i className="fas fa-draw-polygon text-sm"></i>
@@ -556,7 +554,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         
         <button 
           onClick={handleFitBounds} 
-          className="w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white hover:text-blue-600"
+          className="w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100 hover:text-blue-600"
           title="Limit Bul"
         >
           <i className="fas fa-expand text-sm"></i>
@@ -565,10 +563,10 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
       </div>
 
       {/* Draw Tools Panel - Right Side */}
-      <div className="absolute top-24 right-4 z-[1000] flex flex-col gap-3 pointer-events-auto">
+      <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-1.5 pointer-events-auto">
         <button 
           onClick={handleLocate} 
-          className="w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white hover:text-blue-600"
+          className="w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100 hover:text-blue-600"
           title="Mevcut Konum"
         >
           <i className="fas fa-location-crosshairs text-sm"></i>
@@ -576,16 +574,16 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         </button>
         <button 
           onClick={() => setIsSnappingEnabled(!isSnappingEnabled)} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${isSnappingEnabled ? 'bg-orange-600 text-white' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white'}`}
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${isSnappingEnabled ? 'bg-orange-600 text-white' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100'}`}
           title="Obje Yakala"
         >
-          <i className={`fas ${isSnappingEnabled ? 'fa-magnet' : 'fa-magnet text-slate-300'} text-sm`}></i>
+          <i className={`fas ${isSnappingEnabled ? 'fa-magnet' : 'fa-magnet text-slate-400'} text-sm`}></i>
           <span className="text-[7px] font-bold leading-[1.1] text-center">Obje<br/>Yakala</span>
         </button>
 
         <button 
           onClick={() => handleToolChange('draw_point')} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'draw_point' ? 'bg-violet-600 text-white scale-110' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white'}`}
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'draw_point' ? 'bg-violet-600 text-white scale-110' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100'}`}
           title="Nokta Ekle"
         >
           <i className="fas fa-map-pin text-sm"></i>
@@ -593,7 +591,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         </button>
         <button 
           onClick={() => handleToolChange('draw_line')} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'draw_line' ? 'bg-violet-600 text-white scale-110' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white'}`}
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'draw_line' ? 'bg-violet-600 text-white scale-110' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100'}`}
           title="Çizgi Ekle"
         >
           <i className="fas fa-project-diagram text-sm"></i>
@@ -601,23 +599,27 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
         </button>
         <button 
           onClick={() => handleToolChange('draw_area')} 
-          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'draw_area' ? 'bg-violet-600 text-white scale-110' : 'bg-white/90 backdrop-blur-md text-slate-700 hover:bg-white'}`}
+          className={`w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all ${activeTool === 'draw_area' ? 'bg-violet-600 text-white scale-110' : 'bg-slate-200/90 backdrop-blur-md text-slate-700 hover:bg-slate-100'}`}
           title="Alan Ekle"
         >
           <i className="fas fa-draw-polygon text-sm"></i>
           <span className="text-[7px] font-bold leading-[1.1] text-center">Alan<br/>Ekle</span>
         </button>
 
-        {(activeTool === 'draw_line' || activeTool === 'draw_area') && measurePoints.length > 0 && (
-          <button 
-            onClick={handleFinishDrawing} 
-            className="w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all bg-emerald-500 text-white hover:bg-emerald-600 mt-2 animate-in zoom-in"
-            title="Çizimi Tamamla"
-          >
-            <i className="fas fa-check text-sm"></i>
-            <span className="text-[8px] font-bold leading-none">Tamam</span>
-          </button>
-        )}
+        <button 
+          onClick={() => {
+            setTempMapType(mapType);
+            setIsSelectingMap(true);
+            setSelectedFeature(null);
+            setNamingFeature(null);
+            setMeasurePoints([]);
+          }} 
+          className="w-12 h-12 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 transition-all bg-emerald-600 text-white hover:bg-emerald-700 mt-1"
+          title="Harita Altlığı"
+        >
+          <i className="fas fa-map-marked-alt text-sm"></i>
+          <span className="text-[7px] font-bold leading-[1.1] text-center">Harita<br/>Altlığı</span>
+        </button>
       </div>
 
       <div className={`flex-1 w-full h-full relative ${activeTool !== 'pan' && activeTool !== 'select' ? 'cursor-crosshair' : ''}`}>
@@ -697,43 +699,70 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
           ))}
 
         </MapContainer>
+      </div>
 
-        {/* Unified Bottom Info & Brand Area */}
+      {/* Unified Bottom Info & Brand Area */}
         <div className="absolute bottom-0 left-0 right-0 z-[1000] flex flex-col pointer-events-auto">
-          {/* Info Box Area (2/3 height equivalent) */}
-          <div className="bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 min-h-[100px] flex flex-col shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+          {/* Info Box Area */}
+          <div className="bg-slate-200/95 backdrop-blur-md border-t border-slate-300 px-4 py-2 h-[140px] flex flex-col shadow-[0_-4px_10px_rgba(0,0,0,0.05)] overflow-hidden">
+            {/* Dynamic Title */}
+            <div className="flex items-center justify-between mb-1.5 border-b border-slate-300/50 pb-1">
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                {isSelectingMap ? 'Harita Altlığı Seçimi' : 
+                 namingFeature ? 'Obje İsimlendirme' : 
+                 selectedFeature?.properties?._isQuery ? 'Koordinat Bilgisi' :
+                 selectedFeature ? 'Obje Bilgileri' :
+                 measurementResult ? 'Ölçüm Sonuçları' :
+                 activeTool === 'pan' ? 'Gezinti Modu' :
+                 activeTool === 'select' ? 'Obje Seçim Modu' :
+                 'Çizim Araçları'}
+              </h3>
+              {(isSelectingMap || namingFeature || selectedFeature || measurementResult) && (
+                <button 
+                  onClick={() => {
+                    setIsSelectingMap(false);
+                    setNamingFeature(null);
+                    setSelectedFeature(null);
+                    setQueryCoord(null);
+                    setMeasurePoints([]);
+                  }}
+                  className="text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <i className="fas fa-times text-[10px]"></i>
+                </button>
+              )}
+            </div>
+
+            <div className="flex-1 overflow-y-auto no-scrollbar">
             {isSelectingMap ? (
-              <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-wider">Harita Altlığı Seç</h3>
-                </div>
+              <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-2">
                 <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                   <button 
                     onClick={() => setTempMapType('satellite')}
-                    className={`flex-1 min-w-[80px] p-2 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${tempMapType === 'satellite' ? 'border-blue-600 bg-blue-50' : 'border-slate-100 bg-slate-50'}`}
+                    className={`flex-1 min-w-[80px] p-1.5 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${tempMapType === 'satellite' ? 'border-blue-600 bg-blue-50' : 'border-slate-300 bg-slate-200'}`}
                   >
-                    <i className="fas fa-satellite text-lg text-slate-700"></i>
-                    <span className="text-[9px] font-bold text-slate-900">Google Uydu</span>
+                    <i className="fas fa-satellite text-base text-slate-700"></i>
+                    <span className="text-[8px] font-bold text-slate-900">Google Uydu</span>
                   </button>
                   <button 
                     onClick={() => setTempMapType('hybrid')}
-                    className={`flex-1 min-w-[80px] p-2 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${tempMapType === 'hybrid' ? 'border-blue-600 bg-blue-50' : 'border-slate-100 bg-slate-50'}`}
+                    className={`flex-1 min-w-[80px] p-1.5 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${tempMapType === 'hybrid' ? 'border-blue-600 bg-blue-50' : 'border-slate-300 bg-slate-200'}`}
                   >
-                    <i className="fas fa-map-marked-alt text-lg text-slate-700"></i>
-                    <span className="text-[9px] font-bold text-slate-900">Google Hibrit</span>
+                    <i className="fas fa-map-marked-alt text-base text-slate-700"></i>
+                    <span className="text-[8px] font-bold text-slate-900">Google Hibrit</span>
                   </button>
                   <button 
                     onClick={() => setTempMapType('topo')}
-                    className={`flex-1 min-w-[80px] p-2 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${tempMapType === 'topo' ? 'border-blue-600 bg-blue-50' : 'border-slate-100 bg-slate-50'}`}
+                    className={`flex-1 min-w-[80px] p-1.5 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${tempMapType === 'topo' ? 'border-blue-600 bg-blue-50' : 'border-slate-300 bg-slate-200'}`}
                   >
-                    <i className="fas fa-mountain text-lg text-slate-700"></i>
-                    <span className="text-[9px] font-bold text-slate-900">OpenTopoMap</span>
+                    <i className="fas fa-mountain text-base text-slate-700"></i>
+                    <span className="text-[8px] font-bold text-slate-900">OpenTopoMap</span>
                   </button>
                 </div>
                 <div className="flex gap-2">
                   <button 
                     onClick={() => setIsSelectingMap(false)}
-                    className="flex-1 py-2 rounded-lg font-black text-[10px] uppercase text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                    className="flex-1 py-1.5 rounded-lg font-black text-[9px] uppercase text-slate-600 bg-slate-300 hover:bg-slate-400 transition-colors"
                   >
                     İptal
                   </button>
@@ -742,20 +771,20 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
                       setMapType(tempMapType);
                       setIsSelectingMap(false);
                     }}
-                    className="flex-1 py-2 rounded-lg font-black text-[10px] uppercase text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30"
+                    className="flex-1 py-1.5 rounded-lg font-black text-[9px] uppercase text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30"
                   >
                     Kaydet
                   </button>
                 </div>
               </div>
             ) : namingFeature ? (
-              <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2">
+              <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-wider">
-                    {namingFeature.geometry.type === 'Point' ? 'Nokta' : namingFeature.geometry.type === 'LineString' ? 'Çizgi' : 'Alan'} İsimlendir
-                  </h3>
+                  <p className="text-[9px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                    {namingFeature.geometry.type === 'Point' ? 'Nokta' : namingFeature.geometry.type === 'LineString' ? 'Çizgi' : 'Alan'}
+                  </p>
                   {currentDrawInfo && (
-                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{currentDrawInfo}</span>
+                    <span className="text-[9px] font-bold text-slate-500">{currentDrawInfo}</span>
                   )}
                 </div>
                 <div className="flex gap-2">
@@ -764,7 +793,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
                     value={featureNameInput}
                     onChange={(e) => setFeatureNameInput(e.target.value)}
                     placeholder="İsim giriniz..."
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 bg-slate-200 border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     autoFocus
                   />
                   <button 
@@ -772,7 +801,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
                       setNamingFeature(null);
                       setCurrentDrawInfo(null);
                     }}
-                    className="px-4 py-2 rounded-lg font-black text-[10px] uppercase text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                    className="px-3 py-1.5 rounded-lg font-black text-[9px] uppercase text-slate-600 bg-slate-300 hover:bg-slate-400 transition-colors"
                   >
                     İptal
                   </button>
@@ -789,7 +818,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
                       setNamingFeature(null);
                       setCurrentDrawInfo(null);
                     }}
-                    className="px-4 py-2 rounded-lg font-black text-[10px] uppercase text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30"
+                    className="px-3 py-1.5 rounded-lg font-black text-[9px] uppercase text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30"
                   >
                     Kaydet
                   </button>
@@ -797,55 +826,52 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
               </div>
             ) : selectedFeature ? (
               <div className="flex flex-col animate-in fade-in">
-                <div className="flex justify-between items-start mb-2">
+                <div className="flex justify-between items-start mb-1.5">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-black text-slate-900 text-sm truncate">{selectedFeature.properties?.name || 'İsimsiz Obje'}</h3>
+                    <h3 className="font-black text-slate-900 text-xs truncate">{selectedFeature.properties?.name || 'İsimsiz Obje'}</h3>
                     {selectedFeature.properties?._projectName && (
-                      <p className="text-[9px] font-bold text-blue-600 uppercase tracking-wider truncate">{selectedFeature.properties._projectName}</p>
+                      <p className="text-[8px] font-bold text-blue-600 uppercase tracking-wider truncate">{selectedFeature.properties._projectName}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-1">
                     {selectedFeature.properties?._isDrawn && (
                       <button 
                         onClick={() => handleDeleteFeature(selectedFeature)}
-                        className="text-red-500 hover:text-red-700 w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors"
+                        className="text-red-500 hover:text-red-700 w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-100 transition-colors"
                       >
-                        <i className="fas fa-trash-alt text-xs"></i>
+                        <i className="fas fa-trash-alt text-[10px]"></i>
                       </button>
                     )}
-                    <button onClick={() => { setSelectedFeature(null); setQueryCoord(null); }} className="text-slate-400 hover:text-slate-600 w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors">
-                      <i className="fas fa-times text-xs"></i>
-                    </button>
                   </div>
                 </div>
 
                 {selectedFeature.properties?._isQuery && queryCoord ? (
-                  <div className="grid grid-cols-1 gap-2">
-                    <div className="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Sistem:</label>
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between bg-slate-300/50 px-2 py-1 rounded-lg border border-slate-400/10">
+                      <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Sistem:</label>
                       <select 
                         value={selectedCoordSystem}
                         onChange={(e) => setSelectedCoordSystem(e.target.value)}
-                        className="bg-transparent border-none p-0 text-[10px] font-bold text-slate-700 focus:ring-0"
+                        className="bg-transparent border-none p-0 text-[9px] font-bold text-slate-700 focus:ring-0"
                       >
-                        <option value="WGS84">WGS84 (Derece)</option>
+                        <option value="WGS84">WGS84</option>
                         <option value="ITRF96_3">ITRF96 (TM3)</option>
                         <option value="ED50_3">ED50 (TM3)</option>
                         <option value="ED50_6">ED50 (UTM6)</option>
                       </select>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-1.5">
                       {(() => {
                         const converted = convertCoordinate(queryCoord.lat, queryCoord.lng, selectedCoordSystem);
                         return (
                           <>
-                            <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                              <p className="text-[8px] font-black text-slate-400 uppercase mb-0.5">{converted.labelY}</p>
-                              <p className="text-xs font-black text-slate-900 tabular-nums">{converted.y.toFixed(selectedCoordSystem === 'WGS84' ? 6 : 3)}</p>
+                            <div className="bg-slate-300/50 p-1.5 rounded-xl border border-slate-400/10">
+                              <p className="text-[7px] font-black text-slate-500 uppercase mb-0.5">{converted.labelY}</p>
+                              <p className="text-[10px] font-black text-slate-900 tabular-nums">{converted.y.toFixed(selectedCoordSystem === 'WGS84' ? 6 : 3)}</p>
                             </div>
-                            <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                              <p className="text-[8px] font-black text-slate-400 uppercase mb-0.5">{converted.labelX}</p>
-                              <p className="text-xs font-black text-slate-900 tabular-nums">{converted.x.toFixed(selectedCoordSystem === 'WGS84' ? 6 : 3)}</p>
+                            <div className="bg-slate-300/50 p-1.5 rounded-xl border border-slate-400/10">
+                              <p className="text-[7px] font-black text-slate-500 uppercase mb-0.5">{converted.labelX}</p>
+                              <p className="text-[10px] font-black text-slate-900 tabular-nums">{converted.x.toFixed(selectedCoordSystem === 'WGS84' ? 6 : 3)}</p>
                             </div>
                           </>
                         );
@@ -853,29 +879,29 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1.5">
                     {/* Geometri Bilgileri */}
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {selectedFeature.geometry.type === 'Point' && (
-                        <div className="flex-1 min-w-[140px] bg-blue-50/50 p-2 rounded-xl border border-blue-100/50">
-                          <p className="text-[8px] font-black text-blue-400 uppercase mb-0.5">Koordinatlar (WGS84)</p>
-                          <p className="text-[10px] font-black text-slate-900 tabular-nums">
+                        <div className="flex-1 min-w-[120px] bg-blue-100/50 p-1.5 rounded-xl border border-blue-200/50">
+                          <p className="text-[7px] font-black text-blue-500 uppercase mb-0.5">Koordinatlar (WGS84)</p>
+                          <p className="text-[9px] font-black text-slate-900 tabular-nums">
                             {selectedFeature.geometry.coordinates[1].toFixed(6)}, {selectedFeature.geometry.coordinates[0].toFixed(6)}
                           </p>
                         </div>
                       )}
                       {selectedFeature.geometry.type === 'LineString' && (
-                        <div className="flex-1 min-w-[140px] bg-emerald-50/50 p-2 rounded-xl border border-emerald-100/50">
-                          <p className="text-[8px] font-black text-emerald-400 uppercase mb-0.5">Toplam Uzunluk</p>
-                          <p className="text-[10px] font-black text-slate-900 tabular-nums">
+                        <div className="flex-1 min-w-[120px] bg-emerald-100/50 p-1.5 rounded-xl border border-emerald-200/50">
+                          <p className="text-[7px] font-black text-emerald-500 uppercase mb-0.5">Toplam Uzunluk</p>
+                          <p className="text-[9px] font-black text-slate-900 tabular-nums">
                             {(turf.length(selectedFeature, { units: 'meters' })).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} m
                           </p>
                         </div>
                       )}
                       {(selectedFeature.geometry.type === 'Polygon' || selectedFeature.geometry.type === 'MultiPolygon') && (
-                        <div className="flex-1 min-w-[140px] bg-amber-50/50 p-2 rounded-xl border border-amber-100/50">
-                          <p className="text-[8px] font-black text-amber-400 uppercase mb-0.5">Toplam Alan</p>
-                          <p className="text-[10px] font-black text-slate-900 tabular-nums">
+                        <div className="flex-1 min-w-[120px] bg-amber-100/50 p-1.5 rounded-xl border border-amber-200/50">
+                          <p className="text-[7px] font-black text-amber-500 uppercase mb-0.5">Toplam Alan</p>
+                          <p className="text-[9px] font-black text-slate-900 tabular-nums">
                             {(turf.area(selectedFeature)).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} m²
                           </p>
                         </div>
@@ -884,11 +910,11 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
 
                     {/* Açıklama */}
                     {selectedFeature.properties?.description ? (
-                      <div className="bg-slate-50/50 p-2 rounded-xl border border-slate-100/50 max-h-20 overflow-y-auto no-scrollbar">
-                        <p className="text-[10px] text-slate-700 leading-tight font-medium" dangerouslySetInnerHTML={{ __html: selectedFeature.properties.description }}></p>
+                      <div className="bg-slate-300/30 p-1.5 rounded-xl border border-slate-400/10 max-h-12 overflow-y-auto no-scrollbar">
+                        <p className="text-[9px] text-slate-700 leading-tight font-medium" dangerouslySetInnerHTML={{ __html: selectedFeature.properties.description }}></p>
                       </div>
                     ) : (
-                      <div className="italic text-slate-400 text-[9px] px-1">
+                      <div className="italic text-slate-500 text-[8px] px-1">
                         Açıklama bulunmuyor
                       </div>
                     )}
@@ -897,27 +923,27 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
               </div>
             ) : measurementResult ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center animate-in zoom-in-95">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
                   {activeTool === 'distance' ? 'Toplam Mesafe' : 'Hesaplanan Alan'}
                 </p>
-                <p className="text-2xl font-black text-slate-900 tracking-tighter">
+                <p className="text-xl font-black text-slate-900 tracking-tighter">
                   {measurementResult}
                 </p>
                 <button 
                   onClick={() => setMeasurePoints([])}
-                  className="mt-2 px-3 py-1 bg-slate-100 hover:bg-red-50 hover:text-red-600 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-1.5"
+                  className="mt-1.5 px-3 py-1 bg-slate-300 hover:bg-red-100 hover:text-red-600 rounded-lg text-[8px] font-black uppercase transition-all flex items-center gap-1.5"
                 >
                   <i className="fas fa-trash-alt"></i> Temizle
                 </button>
               </div>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1.5 ${
-                  activeTool === 'distance' ? 'bg-emerald-100 text-emerald-600' :
-                  activeTool === 'area' ? 'bg-amber-100 text-amber-600' :
-                  activeTool === 'query_point' ? 'bg-indigo-100 text-indigo-600' :
-                  activeTool === 'pan' ? 'bg-slate-100 text-slate-400' :
-                  'bg-violet-100 text-violet-600'
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center mb-1 ${
+                  activeTool === 'distance' ? 'bg-emerald-200 text-emerald-700' :
+                  activeTool === 'area' ? 'bg-amber-200 text-amber-700' :
+                  activeTool === 'query_point' ? 'bg-indigo-200 text-indigo-700' :
+                  activeTool === 'pan' ? 'bg-slate-300 text-slate-500' :
+                  'bg-violet-200 text-violet-700'
                 }`}>
                   <i className={`fas ${
                     activeTool === 'distance' ? 'fa-ruler' :
@@ -925,9 +951,9 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
                     activeTool === 'query_point' ? 'fa-crosshairs' :
                     activeTool === 'pan' ? 'fa-hand-paper' :
                     'fa-plus'
-                  } text-xs`}></i>
+                  } text-[10px]`}></i>
                 </div>
-                <p className="text-[10px] font-black text-slate-900 uppercase tracking-tight">
+                <p className="text-[9px] font-black text-slate-900 uppercase tracking-tight">
                   {activeTool === 'distance' ? 'Mesafe Ölçümü' : 
                    activeTool === 'area' ? 'Alan Ölçümü' :
                    activeTool === 'query_point' ? 'Koordinat Sorgulama' :
@@ -935,23 +961,28 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
                    activeTool === 'select' ? 'Obje Seçim Modu' :
                    'Çizim Modu'}
                 </p>
-                <p className="text-[9px] font-bold text-slate-500 mt-0.5">
+                <p className="text-[8px] font-bold text-slate-500 mt-0.5">
                   {activeTool === 'pan' ? 'Haritayı kaydırabilir ve yakınlaştırabilirsiniz' :
                    activeTool === 'select' ? 'Bilgi almak için bir objeye tıklayın' :
                    measurePoints.length === 0 ? 'İşleme başlamak için haritaya tıklayın' : 
                    activeTool === 'draw_line' || activeTool === 'draw_area' ? `Nokta eklemeye devam edin${currentDrawInfo ? ` (${currentDrawInfo})` : ''}` :
                    'Noktaları sürükleyerek düzenleyebilirsiniz'}
                 </p>
+                {(activeTool === 'draw_line' || activeTool === 'draw_area') && measurePoints.length > 0 && (
+                  <button 
+                    onClick={handleFinishDrawing} 
+                    className="mt-2 px-5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-2 shadow-lg shadow-emerald-600/20 animate-in slide-in-from-bottom-2"
+                  >
+                    <i className="fas fa-check"></i> Çizimi Tamamla
+                  </button>
+                )}
               </div>
             )}
+            </div>
           </div>
 
-          {/* Brand Info Area (1/3 height equivalent) */}
-          <div className="bg-[#F8FAFC] py-3 flex items-center justify-center border-t border-slate-100">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] text-center">
-              ACB_Soft KML Plus {APP_VERSION}
-            </p>
-          </div>
+          {/* Global Footer */}
+          <GlobalFooter noPadding={true} />
         </div>
       </div>
     </div>

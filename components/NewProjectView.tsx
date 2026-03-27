@@ -3,6 +3,7 @@ import JSZip from 'jszip';
 import { kml } from '@tmcw/togeojson';
 import { Project } from '../types';
 import GlobalFooter from './GlobalFooter';
+import Header from './Header';
 
 interface Props {
   onBack: () => void;
@@ -33,10 +34,48 @@ const NewProjectView: React.FC<Props> = ({ onBack, onProjectCreated }) => {
     }
   };
 
+  const normalizeGeoJSON = (data: any) => {
+    if (!data) return { type: 'FeatureCollection', features: [] };
+    if (data.type === 'FeatureCollection') return data;
+    if (data.type === 'Feature') return { type: 'FeatureCollection', features: [data] };
+    if (data.type === 'GeometryCollection') {
+      return {
+        type: 'FeatureCollection',
+        features: (data.geometries || []).map((g: any) => ({
+          type: 'Feature',
+          geometry: g,
+          properties: {}
+        }))
+      };
+    }
+    if (Array.isArray(data)) return { type: 'FeatureCollection', features: data };
+    return { type: 'FeatureCollection', features: [] };
+  };
+
   const parseKML = (kmlString: string) => {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(kmlString, 'text/xml');
-    return kml(doc);
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(kmlString, 'text/xml');
+      
+      // Check for parsing errors
+      const parserError = doc.querySelector('parsererror');
+      if (parserError) {
+        console.error('KML Parsing Error:', parserError.textContent);
+        throw new Error('KML dosyası ayrıştırılamadı. Geçersiz XML formatı.');
+      }
+
+      const geojson = kml(doc);
+      
+      // Ensure we have a FeatureCollection and it's not empty if possible
+      if (!geojson || (geojson.type === 'FeatureCollection' && (!geojson.features || geojson.features.length === 0))) {
+        console.warn('Parsed GeoJSON is empty or invalid');
+      }
+      
+      return geojson;
+    } catch (err) {
+      console.error('Error in parseKML:', err);
+      throw err;
+    }
   };
 
   const handleCreate = async () => {
@@ -62,8 +101,14 @@ const NewProjectView: React.FC<Props> = ({ onBack, onProjectCreated }) => {
           const zip = new JSZip();
           const loadedZip = await zip.loadAsync(file);
           
-          // Find the first .kml file in the KMZ
-          const kmlFile = Object.values(loadedZip.files).find(f => f.name.toLowerCase().endsWith('.kml'));
+          // Standard KMZ usually has doc.kml at the root
+          let kmlFile = loadedZip.file("doc.kml");
+          
+          // If not found, look for any .kml file
+          if (!kmlFile) {
+            kmlFile = Object.values(loadedZip.files).find(f => f.name.toLowerCase().endsWith('.kml')) || null;
+          }
+
           if (kmlFile) {
             const kmlText = await kmlFile.async('text');
             geojsonData = parseKML(kmlText);
@@ -82,7 +127,7 @@ const NewProjectView: React.FC<Props> = ({ onBack, onProjectCreated }) => {
         id: Date.now().toString(),
         name: projectName.trim(),
         createdAt: Date.now(),
-        geojsonData
+        geojsonData: normalizeGeoJSON(geojsonData)
       };
 
       onProjectCreated(newProject);
@@ -96,14 +141,7 @@ const NewProjectView: React.FC<Props> = ({ onBack, onProjectCreated }) => {
 
   return (
     <div className="flex-1 flex flex-col bg-slate-200 animate-in h-full overflow-y-auto no-scrollbar">
-      <header className="px-8 pt-6 pb-6 flex items-center gap-5 shrink-0 bg-slate-200 border-b border-slate-300 z-10">
-        <button onClick={onBack} className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-md border border-slate-100 text-slate-800 active:scale-90 transition-all">
-          <i className="fas fa-chevron-left text-sm"></i>
-        </button>
-        <div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none">Yeni Proje Yükle</h2>
-        </div>
-      </header>
+      <Header title="Yeni Proje Yükle" onBack={onBack} />
 
       <div className="p-8 flex-1 flex flex-col max-w-sm mx-auto w-full gap-6">
         {error && (
@@ -123,7 +161,7 @@ const NewProjectView: React.FC<Props> = ({ onBack, onProjectCreated }) => {
               type="file" 
               ref={fileInputRef}
               onChange={handleFileChange}
-              accept=".kml,.kmz"
+              accept=".kml,.kmz,application/vnd.google-earth.kml+xml,application/vnd.google-earth.kmz,application/zip"
               className="hidden"
             />
             

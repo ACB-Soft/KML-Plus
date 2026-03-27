@@ -1,5 +1,6 @@
 import React from 'react';
 import { BRAND_NAME, APP_VERSION, DEVELOPER } from '../version';
+import Header from './Header';
 
 interface Props {
   onBack: () => void;
@@ -8,16 +9,7 @@ interface Props {
 const AboutView: React.FC<Props> = ({ onBack }) => {
   return (
     <div className="flex-1 flex flex-col bg-slate-200 animate-in slide-in-from-right duration-300">
-      {/* Header */}
-      <header className="px-6 pt-12 pb-6 shrink-0 flex items-center gap-4">
-        <button 
-          onClick={onBack}
-          className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-600 active:scale-90 transition-all"
-        >
-          <i className="fas fa-chevron-left"></i>
-        </button>
-        <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">Hakkında</h1>
-      </header>
+      <Header title="Hakkında" onBack={onBack} />
 
       <main className="flex-1 overflow-y-auto px-6 pb-12 no-scrollbar">
         <div className="flex flex-col items-center text-center mb-10">
