@@ -104,10 +104,10 @@ const Dashboard: React.FC<Props> = ({ onCreateProject, onStartCapture, onStakeou
           <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-6 -mt-6 blur-xl"></div>
         </button>
 
-        {/* KML Dönüşümü (Koyu Gri Buton) */}
+        {/* KML Dönüşümü (Gri Buton) */}
         <button 
           onClick={onShowConversion}
-          className="w-full py-3 md:py-4 px-5 bg-slate-800 text-white rounded-xl md:rounded-2xl shadow-lg shadow-slate-800/30 active:scale-[0.98] transition-all flex items-center justify-between group relative overflow-hidden border border-white/10"
+          className="w-full py-3 md:py-4 px-5 bg-slate-600 text-white rounded-xl md:rounded-2xl shadow-lg shadow-slate-600/30 active:scale-[0.98] transition-all flex items-center justify-between group relative overflow-hidden border border-white/10"
         >
           <div className="relative z-10 flex items-center gap-3">
             <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/30">

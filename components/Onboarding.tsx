@@ -40,8 +40,8 @@ const Onboarding: React.FC<Props> = ({ onFinish }) => {
         </div>
         
         <div className="space-y-2 md:space-y-3">
-          <p className="text-slate-900 font-black text-[12px] md:text-[14px] uppercase tracking-[0.18em] leading-tight max-w-[260px] mx-auto opacity-80">
-            Mobil Cihazlarınız için<br/>KML/KMZ Görüntüleme Uygulaması
+          <p className="text-slate-900 font-black text-[12px] md:text-[14px] uppercase tracking-[0.18em] leading-tight max-w-[320px] mx-auto opacity-80">
+            Mobil Cihazlarınız için<br />KML/KMZ Görüntüleme Uygulaması
           </p>
           <h1 className="text-5xl md:text-6xl font-black text-blue-600 tracking-tighter leading-none">
             {BRAND_NAME}
