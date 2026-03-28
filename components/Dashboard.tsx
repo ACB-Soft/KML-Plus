@@ -61,7 +61,7 @@ const Dashboard: React.FC<Props> = ({ onCreateProject, onStartCapture, onStakeou
       {/* Header - Logo kaldırıldı, metinler merkezlendi ve üst girinti artırıldı */}
       <header className="flex flex-col items-center shrink-0 mb-10 md:mb-16">
         {/* Açıklama Metni - Siyah Renk, Merkezlenmiş */}
-        <p className="text-sm md:text-base font-black text-slate-900 uppercase tracking-[0.2em] mb-4 leading-tight text-center w-full max-w-sm">
+        <p className="text-[12px] md:text-[14px] font-black text-slate-900 uppercase tracking-[0.18em] mb-4 leading-tight text-center w-full max-w-sm opacity-80">
           Mobil cihazlarınız için <br /> KML/KMZ Görüntüleme Uygulaması
         </p>
         
