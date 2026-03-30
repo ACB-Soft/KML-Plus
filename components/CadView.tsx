@@ -84,6 +84,8 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
   const [mapType, setMapType] = useState<'satellite' | 'topo' | 'hybrid'>('satellite');
   const [tempMapType, setTempMapType] = useState<'satellite' | 'topo' | 'hybrid'>('satellite');
   const [isSelectingMap, setIsSelectingMap] = useState(false);
+  const [isSavingAs, setIsSavingAs] = useState(false);
+  const [saveFileName, setSaveFileName] = useState('');
 
   const activeToolRef = useRef(activeTool);
   useEffect(() => {
@@ -459,11 +461,27 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
       return;
     }
 
+    const defaultName = projects.length > 0 ? `KML_${projects[0].name}` : 'KML_projeadi';
+    setSaveFileName(defaultName);
+    setIsSavingAs(true);
+    
+    // Clear other states
+    setIsSelectingMap(false);
+    setNamingFeature(null);
+    setSelectedFeature(null);
+    setMeasurePoints([]);
+  };
+
+  const executeSave = () => {
+    const allFeatures = [];
+    if (combinedGeoJSON?.features) allFeatures.push(...combinedGeoJSON.features);
+    if (drawnFeatures.length > 0) allFeatures.push(...drawnFeatures);
+    
     const fc: any = { type: 'FeatureCollection', features: allFeatures };
     
     try {
       const kmlString = tokml(fc, {
-        documentName: 'KML Plus Dışa Aktarım',
+        documentName: saveFileName || 'KML Plus Dışa Aktarım',
         documentDescription: 'KML Plus uygulaması ile oluşturuldu.',
         name: 'name',
         description: 'description'
@@ -472,10 +490,11 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
       const dataStr = "data:application/vnd.google-earth.kml+xml;charset=utf-8," + encodeURIComponent(kmlString);
       const downloadAnchorNode = document.createElement('a');
       downloadAnchorNode.setAttribute("href", dataStr);
-      downloadAnchorNode.setAttribute("download", "kml_plus_disa_aktarim.kml");
+      downloadAnchorNode.setAttribute("download", `${saveFileName || 'kml_plus_disa_aktarim'}.kml`);
       document.body.appendChild(downloadAnchorNode);
       downloadAnchorNode.click();
       downloadAnchorNode.remove();
+      setIsSavingAs(false);
     } catch (e) {
       console.error("KML dönüştürme hatası:", e);
       alert("Dışa aktarma sırasında bir hata oluştu.");
@@ -713,6 +732,7 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
             <div className="flex items-center justify-between mb-1.5 border-b border-slate-300/50 pb-1">
               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
                 {isSelectingMap ? 'Harita Altlığı Seçimi' : 
+                 isSavingAs ? 'Farklı Kaydet' :
                  namingFeature ? 'Obje İsimlendirme' : 
                  selectedFeature?.properties?._isQuery ? 'Koordinat Bilgisi' :
                  selectedFeature ? 'Obje Bilgileri' :
@@ -721,10 +741,11 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
                  activeTool === 'select' ? 'Obje Seçim Modu' :
                  'Çizim Araçları'}
               </h3>
-              {(isSelectingMap || namingFeature || selectedFeature || measurementResult) && (
+              {(isSelectingMap || isSavingAs || namingFeature || selectedFeature || measurementResult) && (
                 <button 
                   onClick={() => {
                     setIsSelectingMap(false);
+                    setIsSavingAs(false);
                     setNamingFeature(null);
                     setSelectedFeature(null);
                     setQueryCoord(null);
@@ -778,6 +799,34 @@ const CadView: React.FC<Props> = ({ projects, onBack }) => {
                     className="flex-1 py-1.5 rounded-lg font-black text-[9px] uppercase text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30"
                   >
                     Kaydet
+                  </button>
+                </div>
+              </div>
+            ) : isSavingAs ? (
+              <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-wider">Dosya Adı</label>
+                  <input 
+                    type="text" 
+                    value={saveFileName}
+                    onChange={(e) => setSaveFileName(e.target.value)}
+                    placeholder="Dosya adı giriniz..."
+                    className="w-full bg-slate-200 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autoFocus
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setIsSavingAs(false)}
+                    className="flex-1 py-2 rounded-lg font-black text-[9px] uppercase text-slate-600 bg-slate-300 hover:bg-slate-400 transition-colors"
+                  >
+                    İptal
+                  </button>
+                  <button 
+                    onClick={executeSave}
+                    className="flex-1 py-2 rounded-lg font-black text-[9px] uppercase text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30"
+                  >
+                    İndir
                   </button>
                 </div>
               </div>
