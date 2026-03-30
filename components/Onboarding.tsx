@@ -43,12 +43,14 @@ const Onboarding: React.FC<Props> = ({ onFinish }) => {
           <p className="text-slate-900 font-black text-[12px] md:text-[14px] uppercase tracking-[0.18em] leading-tight max-w-[320px] mx-auto opacity-80">
             Mobil Cihazlarınız için<br />KML/KMZ Görüntüleme Uygulaması
           </p>
+
           <h1 className="text-5xl md:text-6xl font-black text-blue-600 tracking-tighter leading-none">
             {BRAND_NAME}
           </h1>
         </div>
       </div>
 
+      {/* İzin Kartları - Başlığın bir satır altında */}
       <div className="flex flex-col items-center w-full max-w-sm mx-auto space-y-2.5 md:space-y-3">
         <div className="w-full flex gap-3 md:gap-4 text-left items-center p-3 md:p-4 bg-slate-50 rounded-[1.4rem] border border-slate-100 shadow-sm">
           <div className="w-9 h-9 md:w-10 md:h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 shrink-0">
@@ -87,6 +89,7 @@ const Onboarding: React.FC<Props> = ({ onFinish }) => {
         </div>
       </div>
 
+      {/* Uygulamaya Başla Butonu - Footer bir satır üzerinde */}
       <div className="w-full max-w-sm mx-auto shrink-0">
         <button 
           onClick={handlePermissionAndStart}
