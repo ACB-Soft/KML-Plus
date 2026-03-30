@@ -41,7 +41,7 @@ const Onboarding: React.FC<Props> = ({ onFinish }) => {
         
         <div className="space-y-1">
           <p className="text-slate-900 font-black text-[12px] md:text-[14px] uppercase tracking-[0.18em] leading-tight max-w-[260px] mx-auto opacity-80">
-            Mobil Cihazlarınız için<br/>KML-KMZ Görüntüleme Uygulaması
+            Mobil Cihazlarınız için<br/>Gelişmiş KML Uygulaması
           </p>
           <h1 className="text-5xl md:text-6xl font-black text-blue-600 tracking-tighter leading-none">
             {BRAND_NAME}
