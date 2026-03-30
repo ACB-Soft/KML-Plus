@@ -56,7 +56,7 @@ export const downloadKML = (locations: SavedLocation[]) => {
   const timeStr = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }).replace(/:/g, '-');
   
   link.href = url;
-  link.download = `GPS_${projectName}_${dateStr}_${timeStr}.kml`;
+  link.download = `KML_${projectName}_${dateStr}_${timeStr}.kml`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -72,7 +72,7 @@ export const shareKML = async (locations: SavedLocation[]) => {
   const now = new Date();
   const dateStr = now.toLocaleDateString('tr-TR').replace(/\./g, '-');
   const timeStr = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }).replace(/:/g, '-');
-  const fileName = `GPS_${projectName}_${dateStr}_${timeStr}.kml`;
+  const fileName = `KML_${projectName}_${dateStr}_${timeStr}.kml`;
   
   const file = new File([kmlContent], fileName, { type: 'application/vnd.google-earth.kml+xml' });
 
