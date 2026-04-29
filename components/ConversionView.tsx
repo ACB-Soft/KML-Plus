@@ -199,47 +199,62 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
             return { x: tx, y: ty };
         };
 
-        if (ent.type === 'POINT') {
-          const pt = applyTransform(ent.position.x, ent.position.y);
-          const { lat, lng } = convertToWGS84(pt.x, pt.y, projection, centralMeridian);
-          features.push({
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: [lng, lat] },
-            properties: { name: ent.name || 'Nokta', layer: ent.layer }
-          });
-        } else if (ent.type === 'LINE') {
-          const pt1 = applyTransform(ent.vertices[0].x, ent.vertices[0].y);
-          const pt2 = applyTransform(ent.vertices[1].x, ent.vertices[1].y);
-          const p1 = convertToWGS84(pt1.x, pt1.y, projection, centralMeridian);
-          const p2 = convertToWGS84(pt2.x, pt2.y, projection, centralMeridian);
-          features.push({
-            type: 'Feature',
-            geometry: { type: 'LineString', coordinates: [[p1.lng, p1.lat], [p2.lng, p2.lat]] },
-            properties: { name: 'Çizgi', layer: ent.layer }
-          });
-        } else if (ent.type === 'LWPOLYLINE' || ent.type === 'POLYLINE') {
-          const coords = ent.vertices.map((v: any) => {
-            const pt = applyTransform(v.x, v.y);
-            const p = convertToWGS84(pt.x, pt.y, projection, centralMeridian);
-            return [p.lng, p.lat];
-          });
-          if (coords.length < 2) return;
-          const isClosed = ent.shape || ent.closed;
-          if (isClosed) {
-            coords.push(coords[0]);
+        try {
+          if (ent.type === 'POINT') {
+            const pt = applyTransform(ent.position.x, ent.position.y);
+            const { lat, lng } = convertToWGS84(pt.x, pt.y, projection, centralMeridian);
             features.push({
               type: 'Feature',
-              geometry: { type: 'Polygon', coordinates: [coords] },
-              properties: { name: 'Alan', layer: ent.layer }
+              geometry: { type: 'Point', coordinates: [lng, lat] },
+              properties: { name: ent.name || ent.text || 'Nokta', layer: ent.layer }
             });
-          } else {
+          } else if (ent.type === 'LINE') {
+            const start = ent.start || (ent.vertices && ent.vertices[0]);
+            const end = ent.end || (ent.vertices && ent.vertices[1]);
+            if (!start || !end) return;
+            
+            const pt1 = applyTransform(start.x, start.y);
+            const pt2 = applyTransform(end.x, end.y);
+            const p1 = convertToWGS84(pt1.x, pt1.y, projection, centralMeridian);
+            const p2 = convertToWGS84(pt2.x, pt2.y, projection, centralMeridian);
             features.push({
               type: 'Feature',
-              geometry: { type: 'LineString', coordinates: coords },
-              properties: { name: 'Çizgi', layer: ent.layer }
+              geometry: { type: 'LineString', coordinates: [[p1.lng, p1.lat], [p2.lng, p2.lat]] },
+              properties: { name: ent.name || 'Çizgi', layer: ent.layer }
             });
-          }
-        } else if (ent.type === 'CIRCLE' || ent.type === 'ARC') {
+          } else if (ent.type === 'LWPOLYLINE' || ent.type === 'POLYLINE') {
+            if (!ent.vertices || ent.vertices.length < 2) return;
+            const coords = ent.vertices.map((v: any) => {
+              const pt = applyTransform(v.x, v.y);
+              const p = convertToWGS84(pt.x, pt.y, projection, centralMeridian);
+              return [p.lng, p.lat];
+            });
+            const isClosed = ent.shape || ent.closed;
+            if (isClosed) {
+              coords.push(coords[0]);
+              features.push({
+                type: 'Feature',
+                geometry: { type: 'Polygon', coordinates: [coords] },
+                properties: { name: ent.name || 'Alan', layer: ent.layer }
+              });
+            } else {
+              features.push({
+                type: 'Feature',
+                geometry: { type: 'LineString', coordinates: coords },
+                properties: { name: ent.name || 'Çizgi', layer: ent.layer }
+              });
+            }
+          } else if (ent.type === 'TEXT' || ent.type === 'MTEXT') {
+            const pos = ent.position || ent.insertionPoint;
+            if (!pos) return;
+            const pt = applyTransform(pos.x, pos.y);
+            const { lat, lng } = convertToWGS84(pt.x, pt.y, projection, centralMeridian);
+            features.push({
+              type: 'Feature',
+              geometry: { type: 'Point', coordinates: [lng, lat] },
+              properties: { name: ent.text || ent.value || 'Yazı', layer: ent.layer }
+            });
+          } else if (ent.type === 'CIRCLE' || ent.type === 'ARC') {
             const center = ent.center;
             const radius = ent.radius;
             const startAngle = ent.startAngle || 0;
@@ -283,6 +298,9 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
                     rotation: ent.rotation || 0
                 });
             }
+          }
+        } catch (err) {
+          console.warn('Obje işlenirken hata oluştu (atlandı):', err, ent);
         }
       });
     };
