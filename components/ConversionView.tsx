@@ -176,6 +176,29 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
     if (!dxf) throw new Error('DXF dosyası okunamadı veya bozuk.');
 
     setStatus('KML dosyası oluşturuluyor...');
+    
+    // ACI (AutoCAD Color Index) to HEX map (Basic 1-7)
+    const aciToHex = (index: number) => {
+      const basicColors: Record<number, string> = {
+        1: '#ff0000', // Red
+        2: '#ffff00', // Yellow
+        3: '#00ff00', // Green
+        4: '#00ffff', // Cyan
+        5: '#0000ff', // Blue
+        6: '#ff00ff', // Magenta
+        7: '#ffffff', // White/Black (depends on background, KML handles white well)
+      };
+      return basicColors[index] || '#ffffff';
+    };
+
+    // Extract layer colors
+    const layerColors: Record<string, number> = {};
+    if (dxf.tables && dxf.tables.layer && dxf.tables.layer.layers) {
+      Object.keys(dxf.tables.layer.layers).forEach(layerName => {
+        layerColors[layerName] = dxf.tables.layer.layers[layerName].color || 7;
+      });
+    }
+
     const features: any[] = [];
     
     const processEntities = (entities: any[], transform?: { x: number, y: number, scaleX: number, scaleY: number, rotation: number }) => {
@@ -197,6 +220,10 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
         };
 
         try {
+          // Determine color
+          const colorIndex = ent.color !== undefined && ent.color !== 256 ? ent.color : (layerColors[ent.layer] || 7);
+          const hexColor = aciToHex(colorIndex);
+
           if (ent.type === 'POINT' || ent.type === 'TEXT' || ent.type === 'MTEXT') {
             const pos = ent.position || ent.insertionPoint;
             if (!pos) return;
@@ -210,7 +237,9 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
                 properties: { 
                   name: ent.text || ent.value || (ent.type === 'POINT' ? 'Nokta' : 'Yazı'), 
                   layer: ent.layer,
-                  type: ent.type
+                  type: ent.type,
+                  'marker-color': hexColor,
+                  stroke: hexColor
                 }
               });
             }
@@ -228,7 +257,11 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
               features.push({
                 type: 'Feature',
                 geometry: { type: 'LineString', coordinates: [[p1.lng, p1.lat], [p2.lng, p2.lat]] },
-                properties: { name: 'Çizgi', layer: ent.layer }
+                properties: { 
+                  name: 'Çizgi', 
+                  layer: ent.layer,
+                  stroke: hexColor
+                }
               });
             }
           } else if (ent.type === 'LWPOLYLINE' || ent.type === 'POLYLINE') {
@@ -253,13 +286,23 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
               features.push({
                 type: 'Feature',
                 geometry: { type: 'Polygon', coordinates: [coords] },
-                properties: { name: 'Alan', layer: ent.layer }
+                properties: { 
+                  name: 'Alan', 
+                  layer: ent.layer,
+                  stroke: hexColor,
+                  fill: hexColor,
+                  'fill-opacity': 0 // Set to 0 to address user request about "unfilled appearing filled"
+                }
               });
             } else {
               features.push({
                 type: 'Feature',
                 geometry: { type: 'LineString', coordinates: coords },
-                properties: { name: 'Çizgi', layer: ent.layer }
+                properties: { 
+                  name: 'Çizgi', 
+                  layer: ent.layer,
+                  stroke: hexColor
+                }
               });
             }
           } else if (ent.type === 'CIRCLE' || ent.type === 'ARC') {
@@ -286,13 +329,23 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
                 features.push({
                     type: 'Feature',
                     geometry: { type: 'Polygon', coordinates: [points] },
-                    properties: { name: 'Daire', layer: ent.layer }
+                    properties: { 
+                      name: 'Daire', 
+                      layer: ent.layer,
+                      stroke: hexColor,
+                      fill: hexColor,
+                      'fill-opacity': 0 // Respect unfilled status
+                    }
                 });
             } else {
                 features.push({
                     type: 'Feature',
                     geometry: { type: 'LineString', coordinates: points },
-                    properties: { name: 'Yay', layer: ent.layer }
+                    properties: { 
+                      name: 'Yay', 
+                      layer: ent.layer,
+                      stroke: hexColor
+                    }
                 });
             }
           } else if (ent.type === 'INSERT') {
