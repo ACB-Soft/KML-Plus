@@ -122,21 +122,21 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
         if (gType === 'Point') {
           const { x, y } = convertCoordinate(gCoords[1], gCoords[0], projection, centralMeridian);
           d.drawPoint(x, y);
-          if (name) d.drawText(x + 0.2, y + 0.2, 1.2, 0, name);
+          if (name) d.drawText(x + 0.3, y + 0.3, 1.0, 0, name, folder);
         } else if (gType === 'LineString') {
           if (gCoords.length < 2) return;
           const points = gCoords.map((c: any) => {
             const { x, y } = convertCoordinate(c[1], c[0], projection, centralMeridian);
             return [x, y];
           });
-          d.drawPolyline(points, false);
+          d.drawPolyline(points, false, folder);
         } else if (gType === 'Polygon') {
           if (gCoords.length === 0 || gCoords[0].length < 3) return;
           const points = gCoords[0].map((c: any) => {
             const { x, y } = convertCoordinate(c[1], c[0], projection, centralMeridian);
             return [x, y];
           });
-          d.drawPolyline(points, true);
+          d.drawPolyline(points, true, folder);
         } else if (gType === 'MultiLineString') {
           gCoords.forEach((line: any) => drawGeom('LineString', line));
         } else if (gType === 'MultiPolygon') {
@@ -179,20 +179,17 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
     const features: any[] = [];
     
     const processEntities = (entities: any[], transform?: { x: number, y: number, scaleX: number, scaleY: number, rotation: number }) => {
+      if (!entities) return;
+      
       entities.forEach(ent => {
-        let x = 0, y = 0;
-        
         const applyTransform = (px: number, py: number) => {
             let tx = px, ty = py;
             if (transform) {
-                // Scale
                 tx *= transform.scaleX;
                 ty *= transform.scaleY;
-                // Rotate
                 const rad = transform.rotation * Math.PI / 180;
                 const rx = tx * Math.cos(rad) - ty * Math.sin(rad);
                 const ry = tx * Math.sin(rad) + ty * Math.cos(rad);
-                // Translate
                 tx = rx + transform.x;
                 ty = ry + transform.y;
             }
@@ -200,14 +197,23 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
         };
 
         try {
-          if (ent.type === 'POINT') {
-            const pt = applyTransform(ent.position.x, ent.position.y);
+          if (ent.type === 'POINT' || ent.type === 'TEXT' || ent.type === 'MTEXT') {
+            const pos = ent.position || ent.insertionPoint;
+            if (!pos) return;
+            const pt = applyTransform(pos.x, pos.y);
             const { lat, lng } = convertToWGS84(pt.x, pt.y, projection, centralMeridian);
-            features.push({
-              type: 'Feature',
-              geometry: { type: 'Point', coordinates: [lng, lat] },
-              properties: { name: ent.name || ent.text || 'Nokta', layer: ent.layer }
-            });
+            
+            if (!isNaN(lat) && !isNaN(lng)) {
+              features.push({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [lng, lat] },
+                properties: { 
+                  name: ent.text || ent.value || (ent.type === 'POINT' ? 'Nokta' : 'Yazı'), 
+                  layer: ent.layer,
+                  type: ent.type
+                }
+              });
+            }
           } else if (ent.type === 'LINE') {
             const start = ent.start || (ent.vertices && ent.vertices[0]);
             const end = ent.end || (ent.vertices && ent.vertices[1]);
@@ -217,61 +223,63 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
             const pt2 = applyTransform(end.x, end.y);
             const p1 = convertToWGS84(pt1.x, pt1.y, projection, centralMeridian);
             const p2 = convertToWGS84(pt2.x, pt2.y, projection, centralMeridian);
-            features.push({
-              type: 'Feature',
-              geometry: { type: 'LineString', coordinates: [[p1.lng, p1.lat], [p2.lng, p2.lat]] },
-              properties: { name: ent.name || 'Çizgi', layer: ent.layer }
-            });
+            
+            if (!isNaN(p1.lat) && !isNaN(p2.lat)) {
+              features.push({
+                type: 'Feature',
+                geometry: { type: 'LineString', coordinates: [[p1.lng, p1.lat], [p2.lng, p2.lat]] },
+                properties: { name: 'Çizgi', layer: ent.layer }
+              });
+            }
           } else if (ent.type === 'LWPOLYLINE' || ent.type === 'POLYLINE') {
             if (!ent.vertices || ent.vertices.length < 2) return;
-            const coords = ent.vertices.map((v: any) => {
+            const coords: [number, number][] = [];
+            
+            ent.vertices.forEach((v: any) => {
               const pt = applyTransform(v.x, v.y);
               const p = convertToWGS84(pt.x, pt.y, projection, centralMeridian);
-              return [p.lng, p.lat];
+              if (!isNaN(p.lat) && !isNaN(p.lng)) {
+                coords.push([p.lng, p.lat]);
+              }
             });
-            const isClosed = ent.shape || ent.closed;
+
+            if (coords.length < 2) return;
+            const isClosed = ent.shape || ent.closed || (ent.vertices.length > 2 && ent.vertices[0].x === ent.vertices[ent.vertices.length-1].x && ent.vertices[0].y === ent.vertices[ent.vertices.length-1].y);
+            
             if (isClosed) {
-              coords.push(coords[0]);
+              if (coords[0][0] !== coords[coords.length-1][0] || coords[0][1] !== coords[coords.length-1][1]) {
+                coords.push(coords[0]);
+              }
               features.push({
                 type: 'Feature',
                 geometry: { type: 'Polygon', coordinates: [coords] },
-                properties: { name: ent.name || 'Alan', layer: ent.layer }
+                properties: { name: 'Alan', layer: ent.layer }
               });
             } else {
               features.push({
                 type: 'Feature',
                 geometry: { type: 'LineString', coordinates: coords },
-                properties: { name: ent.name || 'Çizgi', layer: ent.layer }
+                properties: { name: 'Çizgi', layer: ent.layer }
               });
             }
-          } else if (ent.type === 'TEXT' || ent.type === 'MTEXT') {
-            const pos = ent.position || ent.insertionPoint;
-            if (!pos) return;
-            const pt = applyTransform(pos.x, pos.y);
-            const { lat, lng } = convertToWGS84(pt.x, pt.y, projection, centralMeridian);
-            features.push({
-              type: 'Feature',
-              geometry: { type: 'Point', coordinates: [lng, lat] },
-              properties: { name: ent.text || ent.value || 'Yazı', layer: ent.layer }
-            });
           } else if (ent.type === 'CIRCLE' || ent.type === 'ARC') {
             const center = ent.center;
+            if (!center) return;
             const radius = ent.radius;
             const startAngle = ent.startAngle || 0;
             const endAngle = ent.type === 'CIRCLE' ? 360 : ent.endAngle;
             
-            const points = [];
-            // Arcs might cross 0, simplify logic:
+            const points: [number, number][] = [];
             let sweep = endAngle - startAngle;
             if (sweep < 0) sweep += 360;
             
-            const steps = Math.max(12, Math.floor(sweep / 5));
+            const steps = Math.max(16, Math.floor(sweep / 5));
             for (let i = 0; i <= steps; i++) {
                 const angle = startAngle + (sweep * i / steps);
                 const rad = angle * Math.PI / 180;
                 const pt = applyTransform(center.x + radius * Math.cos(rad), center.y + radius * Math.sin(rad));
                 const p = convertToWGS84(pt.x, pt.y, projection, centralMeridian);
-                points.push([p.lng, p.lat]);
+                if (!isNaN(p.lat)) points.push([p.lng, p.lat]);
             }
 
             if (ent.type === 'CIRCLE') {
@@ -287,8 +295,9 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
                     properties: { name: 'Yay', layer: ent.layer }
                 });
             }
-        } else if (ent.type === 'INSERT') {
-            const block = dxf.blocks[ent.name];
+          } else if (ent.type === 'INSERT') {
+            const blockName = ent.name;
+            const block = dxf.blocks && dxf.blocks[blockName];
             if (block && block.entities) {
                 processEntities(block.entities, {
                     x: ent.position.x,
@@ -306,6 +315,14 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
     };
 
     if (dxf.entities) processEntities(dxf.entities);
+    
+    // Sometimes entities are only in model space block
+    if (dxf.blocks) {
+      const ms = dxf.blocks['*Model_Space'] || dxf.blocks['*MODEL_SPACE'];
+      if (ms && ms.entities && (!dxf.entities || dxf.entities.length < ms.entities.length)) {
+        processEntities(ms.entities);
+      }
+    }
 
     if (features.length === 0) throw new Error('İçe aktarılacak geçerli obje bulunamadı.');
 
