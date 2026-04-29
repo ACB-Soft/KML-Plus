@@ -291,7 +291,7 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
                   layer: ent.layer,
                   stroke: hexColor,
                   fill: hexColor,
-                  'fill-opacity': 0 // Set to 0 to address user request about "unfilled appearing filled"
+                  'fill-opacity': 0 // Normal polylines stay hollow
                 }
               });
             } else {
@@ -305,6 +305,39 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
                 }
               });
             }
+          } else if (ent.type === 'HATCH' || ent.type === 'SOLID') {
+            // Hatch processing (simplified)
+            // A hatch has one or more paths. Each path has vertices.
+            const paths = ent.type === 'SOLID' ? 
+                [{ vertices: [ent.points[0], ent.points[1], ent.points[2], ent.points[3] || ent.points[2]] }] : 
+                (ent.boundaryPaths || []);
+
+            paths.forEach((path: any) => {
+              if (!path.vertices || path.vertices.length < 3) return;
+              const coords: [number, number][] = [];
+              path.vertices.forEach((v: any) => {
+                const pt = applyTransform(v.x, v.y);
+                const p = convertToWGS84(pt.x, pt.y, projection, centralMeridian);
+                if (!isNaN(p.lat)) coords.push([p.lng, p.lat]);
+              });
+              
+              if (coords.length >= 3) {
+                if (coords[0][0] !== coords[coords.length-1][0] || coords[0][1] !== coords[coords.length-1][1]) {
+                    coords.push(coords[0]);
+                }
+                features.push({
+                  type: 'Feature',
+                  geometry: { type: 'Polygon', coordinates: [coords] },
+                  properties: { 
+                    name: 'Taralı Alan', 
+                    layer: ent.layer,
+                    stroke: hexColor,
+                    fill: hexColor,
+                    'fill-opacity': 0.5 // Hatches appear filled
+                  }
+                });
+              }
+            });
           } else if (ent.type === 'CIRCLE' || ent.type === 'ARC') {
             const center = ent.center;
             if (!center) return;
