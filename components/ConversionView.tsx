@@ -177,7 +177,7 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
 
     setStatus('KML dosyası oluşturuluyor...');
     
-    // ACI (AutoCAD Color Index) to HEX map (Basic 1-7)
+    // ACI (AutoCAD Color Index) to HEX map (Basic 1-15)
     const aciToHex = (index: number) => {
       const basicColors: Record<number, string> = {
         1: '#ff0000', // Red
@@ -187,6 +187,14 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
         5: '#0000ff', // Blue
         6: '#ff00ff', // Magenta
         7: '#ffffff', // White/Black (depends on background, KML handles white well)
+        8: '#808080', // Dark Gray
+        9: '#c0c0c0', // Light Gray
+        10: '#ff0000', // Red (variation)
+        11: '#ff7f7f',
+        12: '#a50000',
+        13: '#a55252',
+        14: '#7f0000',
+        15: '#7f3f3f'
       };
       return basicColors[index] || '#ffffff';
     };
@@ -291,7 +299,7 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
                   layer: ent.layer,
                   stroke: hexColor,
                   fill: hexColor,
-                  'fill-opacity': 0 // Normal polylines stay hollow
+                  'fill-opacity': 0.5 // Updated to 0.5 (50% transparency)
                 }
               });
             } else {
@@ -367,7 +375,7 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
                       layer: ent.layer,
                       stroke: hexColor,
                       fill: hexColor,
-                      'fill-opacity': 0 // Respect unfilled status
+                      'fill-opacity': 0.5 // Circle set to 50% transparency
                     }
                 });
             } else {
