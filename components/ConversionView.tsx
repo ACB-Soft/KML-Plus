@@ -1,35 +1,416 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import Header from './Header';
 import GlobalFooter from './GlobalFooter';
+import JSZip from 'jszip';
+import * as toGeoJSON from '@tmcw/togeojson';
+import tokml from 'tokml';
+import DxfParser from 'dxf-parser';
+import DxfWriter from 'dxf-writer';
+import { convertCoordinate, convertToWGS84 } from '../utils/CoordinateUtils';
 
 interface Props {
   onBack: () => void;
 }
 
+type ConversionMode = 'KML_TO_DXF' | 'DXF_TO_KML';
+
 const ConversionView: React.FC<Props> = ({ onBack }) => {
+  const [mode, setMode] = useState<ConversionMode | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [projection, setProjection] = useState('ITRF96_3');
+  const [centralMeridian, setCentralMeridian] = useState<number>(33);
+  const [status, setStatus] = useState<string | null>(null);
+  const [showProjectionSelector, setShowProjectionSelector] = useState(false);
+  const [showMeridianSelector, setShowMeridianSelector] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const projections = [
+    { id: 'ITRF96_3', name: 'ITRF96 (TM3)' },
+    { id: 'ED50_3', name: 'ED50 (TM3)' },
+    { id: 'ED50_6', name: 'ED50 (UTM6)' },
+    { id: 'WGS84', name: 'WGS84 (Global)' }
+  ];
+
+  const meridians = (projection === 'ED50_6' ? [
+    { dom: 27, zone: 35 },
+    { dom: 33, zone: 36 },
+    { dom: 39, zone: 37 },
+    { dom: 45, zone: 38 }
+  ] : [27, 30, 33, 36, 39, 42, 45].map(d => ({ dom: d })));
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+      setStatus(null);
+    }
+  };
+
+  const handleConvert = async () => {
+    if (!file || !mode) return;
+
+    setIsProcessing(true);
+    setStatus('İşlem başlatıldı...');
+
+    try {
+      // Artificial delay for better UX as requested (5 seconds)
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      if (mode === 'KML_TO_DXF') {
+        await kmlToDxf(file);
+      } else {
+        await dxfToKml(file);
+      }
+      setStatus('Dönüşüm planlandığı gibi tamamlandı!');
+    } catch (error) {
+      console.error(error);
+      setStatus('Hata oluştu: ' + (error as Error).message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const kmlToDxf = async (file: File) => {
+    setStatus('KML verisi okunuyor...');
+    let kmlContent = '';
+    
+    if (file.name.toLowerCase().endsWith('.kmz')) {
+      const zip = await JSZip.loadAsync(file);
+      const kmlFile = Object.keys(zip.files).find(f => f.toLowerCase().endsWith('.kml'));
+      if (!kmlFile) throw new Error('KMZ içinde KML dosyası bulunamadı.');
+      kmlContent = await zip.files[kmlFile].async('string');
+    } else {
+      kmlContent = await file.text();
+    }
+
+    const parser = new DOMParser();
+    const kmlDom = parser.parseFromString(kmlContent, 'text/xml');
+    const geojson = toGeoJSON.kml(kmlDom);
+
+    setStatus('DXF dosyası oluşturuluyor...');
+    const d = new DxfWriter();
+    d.setUnits('Meters');
+
+    let featuresCount = 0;
+    geojson.features.forEach((feature: any) => {
+      const type = feature.geometry.type;
+      const coords = feature.geometry.coordinates;
+      const name = feature.properties?.name || `Obje_${featuresCount + 1}`;
+
+      if (type === 'Point') {
+        const { x, y } = convertCoordinate(coords[1], coords[0], projection, centralMeridian);
+        d.drawPoint(x, y);
+        // Yazı ekleme
+        d.drawText(x + 0.5, y + 0.5, 1.5, 0, name);
+        featuresCount++;
+      } else if (type === 'LineString') {
+        const points = coords.map((c: any) => {
+          const { x, y } = convertCoordinate(c[1], c[0], projection, centralMeridian);
+          return [x, y];
+        });
+        d.drawPolyline(points, false);
+        featuresCount++;
+      } else if (type === 'Polygon') {
+        // Multi-ring polygons not fully handled for simplicity
+        const points = coords[0].map((c: any) => {
+          const { x, y } = convertCoordinate(c[1], c[0], projection, centralMeridian);
+          return [x, y];
+        });
+        d.drawPolyline(points, true);
+        featuresCount++;
+      } else if (type === 'MultiLineString') {
+        coords.forEach((line: any) => {
+          const points = line.map((c: any) => {
+            const { x, y } = convertCoordinate(c[1], c[0], projection, centralMeridian);
+            return [x, y];
+          });
+          d.drawPolyline(points, false);
+        });
+        featuresCount++;
+      }
+    });
+
+    if (featuresCount === 0) throw new Error('Dönüştürülecek geçerli obje bulunamadı.');
+
+    const dxfString = d.toDxfString();
+    downloadFile(dxfString, file.name.replace(/\.(kml|kmz)$/i, '') + '.dxf', 'application/dxf');
+  };
+
+  const dxfToKml = async (file: File) => {
+    setStatus('DXF verisi parse ediliyor...');
+    const dxfContent = await file.text();
+    const parser = new DxfParser();
+    const dxf = parser.parseSync(dxfContent);
+
+    if (!dxf) throw new Error('DXF dosyası okunamadı veya bozuk.');
+
+    setStatus('KML dosyası oluşturuluyor...');
+    const features: any[] = [];
+    
+    // We need a reference point to guess the DOM if not specified, 
+    // but usually users in Turkey use 3-degree or UTM. 
+    // This is tricky for DXF because it has no metadata for projection.
+    
+    const processEntities = (entities: any[]) => {
+      entities.forEach(ent => {
+        if (ent.type === 'POINT') {
+          const { lat, lng } = convertToWGS84(ent.position.x, ent.position.y, projection, centralMeridian);
+          features.push({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [lng, lat] },
+            properties: { name: ent.name || 'Nokta' }
+          });
+        } else if (ent.type === 'LINE') {
+          const p1 = convertToWGS84(ent.vertices[0].x, ent.vertices[0].y, projection, centralMeridian);
+          const p2 = convertToWGS84(ent.vertices[1].x, ent.vertices[1].y, projection, centralMeridian);
+          features.push({
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: [[p1.lng, p1.lat], [p2.lng, p2.lat]] },
+            properties: { name: 'Çizgi' }
+          });
+        } else if (ent.type === 'LWPOLYLINE' || ent.type === 'POLYLINE') {
+          const coords = ent.vertices.map((v: any) => {
+            const p = convertToWGS84(v.x, v.y, projection, centralMeridian);
+            return [p.lng, p.lat];
+          });
+          const isClosed = ent.shape || ent.closed;
+          if (isClosed) {
+            coords.push(coords[0]);
+            features.push({
+              type: 'Feature',
+              geometry: { type: 'Polygon', coordinates: [coords] },
+              properties: { name: 'Alan' }
+            });
+          } else {
+            features.push({
+              type: 'Feature',
+              geometry: { type: 'LineString', coordinates: coords },
+              properties: { name: 'Çizgi' }
+            });
+          }
+        } else if (ent.type === 'CIRCLE') {
+            // Circle to polygon approx
+            const center = ent.center;
+            const radius = ent.radius;
+            const points = [];
+            for (let i = 0; i <= 360; i += 10) {
+                const rad = i * Math.PI / 180;
+                const p = convertToWGS84(center.x + radius * Math.cos(rad), center.y + radius * Math.sin(rad), projection, centralMeridian);
+                points.push([p.lng, p.lat]);
+            }
+            features.push({
+                type: 'Feature',
+                geometry: { type: 'Polygon', coordinates: [points] },
+                properties: { name: 'Daire' }
+            });
+        }
+      });
+    };
+
+    if (dxf.entities) processEntities(dxf.entities);
+    if (dxf.blocks) {
+        Object.values(dxf.blocks).forEach((block: any) => {
+            if (block.entities) processEntities(block.entities);
+        });
+    }
+
+    if (features.length === 0) throw new Error('İçe aktarılacak geçerli obje bulunamadı.');
+
+    const geojson = { type: 'FeatureCollection', features };
+    const kml = tokml(geojson);
+    downloadFile(kml, file.name.replace(/\.dxf$/i, '') + '.kml', 'application/vnd.google-earth.kml+xml');
+  };
+
+  const downloadFile = (content: string, fileName: string, contentType: string) => {
+    const blob = new Blob([content], { type: contentType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="flex-1 flex flex-col bg-slate-200 animate-in h-full overflow-hidden">
       <Header 
-        title="KML Dönüşümü" 
-        onBack={onBack} 
+        title={!mode ? "KML Dönüşümü" : (mode === 'KML_TO_DXF' ? 'KML → DXF' : 'DXF → KML')} 
+        onBack={mode ? () => { setMode(null); setFile(null); setStatus(null); } : onBack} 
         sticky={true}
       />
 
-      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-        <div className="w-24 h-24 bg-orange-100 rounded-full flex items-center justify-center mb-6 border-4 border-white shadow-xl">
-          <i className="fas fa-tools text-4xl text-orange-600 animate-bounce"></i>
-        </div>
-        <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight mb-2">Hazırlanıyor</h2>
-        <p className="text-slate-500 font-medium max-w-xs mx-auto">
-          KML dönüşüm araçları çok yakında burada olacak. Lütfen takipte kalın!
-        </p>
-        
-        <div className="mt-12 flex gap-2">
-          <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-          <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-          <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-        </div>
-      </div>
+      <main className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-6">
+        {/* Seçim Ekranı */}
+        {!mode ? (
+          <div className="grid grid-cols-1 gap-4 py-4">
+            <button 
+              onClick={() => setMode('KML_TO_DXF')}
+              className="group p-6 bg-white rounded-3xl border-2 border-transparent hover:border-blue-600 transition-all text-center space-y-4 shadow-sm active:scale-95"
+            >
+              <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mx-auto group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <i className="fas fa-file-export text-2xl"></i>
+              </div>
+              <div>
+                <h3 className="font-black text-slate-800 uppercase tracking-tight">KML/KMZ → DXF</h3>
+                <p className="text-[11px] font-bold text-slate-400 mt-1 uppercase">Google Earth'ten CAD formatına</p>
+              </div>
+            </button>
+
+            <button 
+              onClick={() => setMode('DXF_TO_KML')}
+              className="group p-6 bg-white rounded-3xl border-2 border-transparent hover:border-emerald-600 transition-all text-center space-y-4 shadow-sm active:scale-95"
+            >
+              <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 mx-auto group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                <i className="fas fa-file-import text-2xl"></i>
+              </div>
+              <div>
+                <h3 className="font-black text-slate-800 uppercase tracking-tight">DXF → KML/KMZ</h3>
+                <p className="text-[11px] font-bold text-slate-400 mt-1 uppercase">CAD Dosyasından Google Earth'e</p>
+              </div>
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-6 animate-in slide-in-from-bottom-4">
+            {/* Dosya Seçimi */}
+            <div 
+              onClick={() => fileInputRef.current?.click()}
+              className={`p-10 border-2 border-dashed rounded-[2rem] text-center cursor-pointer transition-all ${file ? 'bg-emerald-50 border-emerald-300' : 'bg-white border-slate-300 hover:border-blue-400'}`}
+            >
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept={mode === 'KML_TO_DXF' ? '.kml,.kmz' : '.dxf'}
+                onChange={handleFileChange}
+              />
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${file ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                <i className={`fas ${file ? 'fa-check' : 'fa-cloud-upload-alt'} text-2xl`}></i>
+              </div>
+              <p className="text-sm font-black text-slate-700 uppercase tracking-tight">
+                {file ? file.name : "Dosya Seç veya Sürükle"}
+              </p>
+              <p className="text-[11px] font-bold text-slate-400 mt-1 uppercase">
+                {mode === 'KML_TO_DXF' ? '.KML veya .KMZ' : '.DXF'} formatında
+              </p>
+            </div>
+
+            {/* Projeksiyon Seçimi - Daha Kompakt Tasarım */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                {/* Projeksiyon Seçici */}
+                <div 
+                  onClick={() => setShowProjectionSelector(true)}
+                  className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm active:scale-95 transition-transform cursor-pointer"
+                >
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Projeksiyon</label>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-slate-700 truncate">
+                      {projections.find(p => p.id === projection)?.name.split(' (')[0] || projection}
+                    </span>
+                    <i className="fas fa-chevron-down text-[10px] text-blue-500"></i>
+                  </div>
+                </div>
+
+                {/* DOM Seçici */}
+                <div 
+                  onClick={() => projection !== 'WGS84' && setShowMeridianSelector(true)}
+                  className={`bg-white p-4 rounded-2xl border border-slate-100 shadow-sm transition-transform cursor-pointer ${projection === 'WGS84' ? 'opacity-50 grayscale' : 'active:scale-95'}`}
+                >
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">DOM / Dilim</label>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-slate-700 truncate">
+                      {projection === 'WGS84' ? '-' : `${centralMeridian}°`}
+                    </span>
+                    <i className="fas fa-chevron-down text-[10px] text-blue-500"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Seçim Overlays */}
+            {(showProjectionSelector || showMeridianSelector) && (
+              <div className="fixed inset-0 z-50 flex items-end justify-center animate-in fade-in duration-300">
+                <div 
+                  className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                  onClick={() => { setShowProjectionSelector(false); setShowMeridianSelector(false); }}
+                ></div>
+                <div className="relative w-full max-w-md bg-white rounded-t-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom-full duration-500">
+                  <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-8"></div>
+                  
+                  {showProjectionSelector ? (
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-black text-slate-800 uppercase tracking-[0.2em] text-center mb-6">Projeksiyon Sistemi</h3>
+                      <div className="grid grid-cols-1 gap-2">
+                        {projections.map(p => (
+                          <button
+                            key={p.id}
+                            onClick={() => { setProjection(p.id); setShowProjectionSelector(false); }}
+                            className={`p-4 rounded-2xl border-2 text-left transition-all flex items-center justify-between ${projection === p.id ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-50 bg-slate-50 text-slate-600'}`}
+                          >
+                            <span className="text-xs font-bold">{p.name}</span>
+                            {projection === p.id && <i className="fas fa-check-circle"></i>}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-black text-slate-800 uppercase tracking-[0.2em] text-center mb-6">Dilim Orta Meridyeni</h3>
+                      <div className="grid grid-cols-3 gap-2">
+                        {meridians.map((m: any) => (
+                          <button
+                            key={m.dom}
+                            onClick={() => { setCentralMeridian(m.dom); setShowMeridianSelector(false); }}
+                            className={`py-4 rounded-2xl border-2 text-center transition-all ${centralMeridian === m.dom ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-50 bg-slate-50 text-slate-600'}`}
+                          >
+                            <span className="text-xs font-bold">{m.dom}°</span>
+                            <div className="text-[8px] opacity-70">{m.zone ? `(Z${m.zone})` : ''}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <button 
+                    onClick={() => { setShowProjectionSelector(false); setShowMeridianSelector(false); }}
+                    className="w-full mt-8 py-4 bg-slate-100 rounded-2xl font-black text-[10px] uppercase text-slate-500 tracking-widest"
+                  >
+                    Kapat
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Durum Mesajı */}
+            {status && (
+              <div className="p-4 bg-white/80 backdrop-blur-sm rounded-2xl border border-white text-center animate-in zoom-in-95">
+                <p className="text-xs font-black text-slate-600 uppercase tracking-tight">{status}</p>
+              </div>
+            )}
+
+            {/* Dönüştür Butonu */}
+            <button 
+              disabled={!file || isProcessing}
+              onClick={handleConvert}
+              className={`w-full py-5 rounded-[1.8rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl transition-all flex items-center justify-center gap-4 ${!file || isProcessing ? 'bg-slate-400 text-slate-200 cursor-not-allowed' : 'bg-blue-600 text-white shadow-blue-600/30 active:scale-95'}`}
+            >
+              {isProcessing ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i>
+                  İŞLENİYOR...
+                </>
+              ) : (
+                <>
+                  DÖNÜŞTÜRMEYİ BAŞLAT
+                  <i className="fas fa-arrow-right opacity-50"></i>
+                </>
+              )}
+            </button>
+          </div>
+        )}
+      </main>
       
       <GlobalFooter />
     </div>

@@ -24,7 +24,7 @@ const getDom6 = (lon: number) => {
     return zone * 6 - 183;
 };
 
-export const convertCoordinate = (lat: number, lng: number, system: string) => {
+export const convertCoordinate = (lat: number, lng: number, system: string, manualDom?: number) => {
   if (!system || system === 'WGS84') {
     return { x: lng, y: lat, labelX: 'Boylam', labelY: 'Enlem', zone: '' };
   }
@@ -33,18 +33,17 @@ export const convertCoordinate = (lat: number, lng: number, system: string) => {
   let zoneLabel = '';
 
   if (system === 'ITRF96_3') {
-    const dom = getDom3(lng);
+    const dom = manualDom || getDom3(lng);
     destProj = `+proj=tmerc +lat_0=0 +lon_0=${dom} +k=1 +x_0=500000 +y_0=0 +ellps=GRS80 +units=m +no_defs`;
     zoneLabel = `DOM ${dom}`;
   } else if (system === 'ED50_3') {
-    const dom = getDom3(lng);
-    // Türkiye için ortalama ED50-WGS84 dönüşüm parametreleri (HGM/EPSG standartları)
-    // +towgs84=dX,dY,dZ,Rx,Ry,Rz,dS
+    const dom = manualDom || getDom3(lng);
     destProj = `+proj=tmerc +lat_0=0 +lon_0=${dom} +k=1 +x_0=500000 +y_0=0 +ellps=intl +towgs84=-87,-98,-121,0,0,0,0 +units=m +no_defs`;
     zoneLabel = `DOM ${dom}`;
   } else if (system === 'ED50_6') {
-    const dom = getDom6(lng);
-    destProj = `+proj=utm +zone=${getUTMZone(lng)} +ellps=intl +towgs84=-87,-98,-121,0,0,0,0 +units=m +no_defs`;
+    const dom = manualDom || getDom6(lng);
+    const zone = manualDom ? Math.floor((manualDom + 183) / 6) : getUTMZone(lng);
+    destProj = `+proj=utm +zone=${zone} +ellps=intl +towgs84=-87,-98,-121,0,0,0,0 +units=m +no_defs`;
     zoneLabel = `DOM ${dom}`;
   }
 
@@ -61,22 +60,22 @@ export const convertCoordinate = (lat: number, lng: number, system: string) => {
   return { x: lng, y: lat, labelX: 'Boylam', labelY: 'Enlem', zone: '' };
 };
 
-export const convertToWGS84 = (x: number, y: number, system: string, referenceLng?: number) => {
+export const convertToWGS84 = (x: number, y: number, system: string, manualDom?: number) => {
   if (!system || system === 'WGS84') {
     return { lat: y, lng: x };
   }
 
-  const lng = referenceLng || 33; // Türkiye için varsayılan orta meridyen (yaklaşık)
   let srcProj = '';
 
   if (system === 'ITRF96_3') {
-    const dom = getDom3(lng);
+    const dom = manualDom || 33;
     srcProj = `+proj=tmerc +lat_0=0 +lon_0=${dom} +k=1 +x_0=500000 +y_0=0 +ellps=GRS80 +units=m +no_defs`;
   } else if (system === 'ED50_3') {
-    const dom = getDom3(lng);
+    const dom = manualDom || 33;
     srcProj = `+proj=tmerc +lat_0=0 +lon_0=${dom} +k=1 +x_0=500000 +y_0=0 +ellps=intl +towgs84=-87,-98,-121,0,0,0,0 +units=m +no_defs`;
   } else if (system === 'ED50_6') {
-    const zone = getUTMZone(lng);
+    const dom = manualDom || 33;
+    const zone = manualDom ? Math.floor((manualDom + 183) / 6) : 36;
     srcProj = `+proj=utm +zone=${zone} +ellps=intl +towgs84=-87,-98,-121,0,0,0,0 +units=m +no_defs`;
   }
 
