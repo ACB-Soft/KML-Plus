@@ -177,7 +177,7 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
 
     setStatus('KML dosyası oluşturuluyor...');
     
-    // ACI (AutoCAD Color Index) to HEX map (Basic 1-15)
+    // ACI (AutoCAD Color Index) to HEX map (Expanded 1-255)
     const aciToHex = (index: number) => {
       const basicColors: Record<number, string> = {
         1: '#ff0000', // Red
@@ -186,17 +186,39 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
         4: '#00ffff', // Cyan
         5: '#0000ff', // Blue
         6: '#ff00ff', // Magenta
-        7: '#ffffff', // White/Black (depends on background, KML handles white well)
+        7: '#ffffff', // White
         8: '#808080', // Dark Gray
         9: '#c0c0c0', // Light Gray
-        10: '#ff0000', // Red (variation)
-        11: '#ff7f7f',
-        12: '#a50000',
-        13: '#a55252',
-        14: '#7f0000',
-        15: '#7f3f3f'
+        250: '#333333', 251: '#555555', 252: '#777777', 253: '#999999', 254: '#bbbbbb', 255: '#ffffff'
       };
-      return basicColors[index] || '#ffffff';
+      
+      if (basicColors[index]) return basicColors[index];
+      
+      // Heuristic for other ACI colors (simplified color wheel calculation)
+      if (index >= 10 && index <= 249) {
+        const hue = Math.floor((index - 10) / 10);
+        const lum = (index - 10) % 10;
+        const h = (hue * 15); // 0-360
+        const s = 1.0;
+        const l = 0.5 + (lum * 0.05); // 0.5-1.0
+        
+        // HSL to RGB conversion
+        const c = (1 - Math.abs(2 * l - 1)) * s;
+        const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+        const m = l - c / 2;
+        let r = 0, g = 0, b = 0;
+        if (h < 60) { r = c; g = x; b = 0; }
+        else if (h < 120) { r = x; g = c; b = 0; }
+        else if (h < 180) { r = 0; g = c; b = x; }
+        else if (h < 240) { r = 0; g = x; b = c; }
+        else if (h < 300) { r = x; g = 0; b = c; }
+        else { r = c; g = 0; b = x; }
+        
+        const toHex = (n: number) => Math.round((n + m) * 255).toString(16).padStart(2, '0');
+        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+      }
+
+      return '#ffffff';
     };
 
     // Extract layer colors
@@ -421,7 +443,11 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
     if (features.length === 0) throw new Error('İçe aktarılacak geçerli obje bulunamadı.');
 
     const geojson = { type: 'FeatureCollection', features };
-    const kml = tokml(geojson);
+    const kml = tokml(geojson, {
+      simplestyle: true,
+      name: 'name',
+      description: 'description'
+    });
     downloadFile(kml, file.name.replace(/\.dxf$/i, '') + '.kml', 'application/vnd.google-earth.kml+xml');
   };
 
