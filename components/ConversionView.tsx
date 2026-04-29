@@ -225,7 +225,9 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
     const layerColors: Record<string, number> = {};
     if (dxf.tables && dxf.tables.layer && dxf.tables.layer.layers) {
       Object.keys(dxf.tables.layer.layers).forEach(layerName => {
-        layerColors[layerName] = dxf.tables.layer.layers[layerName].color || 7;
+        const layer = dxf.tables.layer.layers[layerName];
+        // Use lowercase for case-insensitive lookup
+        layerColors[layerName.toLowerCase()] = (layer.color !== undefined) ? layer.color : 7;
       });
     }
 
@@ -248,11 +250,27 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
             }
             return { x: tx, y: ty };
         };
-
+ 
         try {
-          // Determine color
-          const colorIndex = ent.color !== undefined && ent.color !== 256 ? ent.color : (layerColors[ent.layer] || 7);
-          const hexColor = aciToHex(colorIndex);
+          // Determine color (0: ByBlock, 256: ByLayer)
+          let hexColor = '#ffffff';
+          
+          if (ent.trueColor !== undefined) {
+             const tc = ent.trueColor;
+             const r = (tc >> 16) & 0xff;
+             const g = (tc >> 8) & 0xff;
+             const b = tc & 0xff;
+             hexColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+          } else {
+            let colorIndex = 7;
+            if (ent.color !== undefined && ent.color !== 256 && ent.color !== 0) {
+              colorIndex = ent.color;
+            } else {
+              const layerName = (ent.layer || '0').toLowerCase();
+              colorIndex = layerColors[layerName] !== undefined ? layerColors[layerName] : 7;
+            }
+            hexColor = aciToHex(colorIndex);
+          }
 
           if (ent.type === 'POINT' || ent.type === 'TEXT' || ent.type === 'MTEXT') {
             const pos = ent.position || ent.insertionPoint;
@@ -444,7 +462,7 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
 
     const geojson = { type: 'FeatureCollection', features };
     const kml = tokml(geojson, {
-      simplestyle: true,
+      simpleStyle: true,
       name: 'name',
       description: 'description'
     });
