@@ -254,27 +254,11 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
         };
  
         try {
-          // Determine color (0: ByBlock, 256: ByLayer)
-          let hexColor = '#ffffff';
-          
-          if (ent.trueColor !== undefined) {
-             const tc = ent.trueColor;
-             const r = (tc >> 16) & 0xff;
-             const g = (tc >> 8) & 0xff;
-             const b = tc & 0xff;
-             hexColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-          } else {
-            let colorIndex = 7;
-            if (ent.color !== undefined && ent.color !== 256 && ent.color !== 0) {
-              colorIndex = ent.color;
-            } else {
-              const layerName = (ent.layer || '0').toLowerCase();
-              colorIndex = layerColors[layerName] !== undefined ? layerColors[layerName] : 7;
-            }
-            hexColor = aciToHex(colorIndex);
-          }
+          // Yellow color for non-point objects as per user request
+          const hexColor = '#ffff00';
+          const isPointType = ent.type === 'POINT' || ent.type === 'TEXT' || ent.type === 'MTEXT';
 
-          if (ent.type === 'POINT' || ent.type === 'TEXT' || ent.type === 'MTEXT') {
+          if (isPointType) {
             const pos = ent.position || ent.insertionPoint;
             if (!pos) return;
             const pt = applyTransform(pos.x, pos.y);
@@ -285,10 +269,9 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
                 type: 'Feature',
                 geometry: { type: 'Point', coordinates: [lng, lat] },
                 properties: { 
-                  name: ent.text || ent.value || (ent.type === 'POINT' ? 'Nokta' : 'Yazı'), 
-                  layer: ent.layer,
-                  'marker-color': hexColor,
-                  'marker-size': 'medium'
+                   name: ent.text || ent.value || (ent.type === 'POINT' ? 'Nokta' : 'Yazı'), 
+                   layer: ent.layer
+                   // Default style (pushpin) will be applied by Google Earth
                 }
               });
             }
