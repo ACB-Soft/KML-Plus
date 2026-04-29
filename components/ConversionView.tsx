@@ -91,43 +91,74 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
     const d = new DxfWriter();
     d.setUnits('Meters');
 
-    let featuresCount = 0;
-    geojson.features.forEach((feature: any) => {
+    const processFeature = (feature: any) => {
+      if (!feature.geometry) return;
+
       const type = feature.geometry.type;
       const coords = feature.geometry.coordinates;
-      const name = feature.properties?.name || `Obje_${featuresCount + 1}`;
+      const name = feature.properties?.name || '';
+      const folder = feature.properties?.folder || '0';
+      
+      // Extract color if exists (typical KML color is aabbggrr)
+      let dxfColor = 7; // Default White/Black
+      if (feature.properties?.stroke) {
+        // Simple heuristic for common colors
+        const s = feature.properties.stroke.toLowerCase();
+        if (s.includes('ff0000')) dxfColor = 1; // Red
+        else if (s.includes('00ff00')) dxfColor = 3; // Green
+        else if (s.includes('0000ff')) dxfColor = 5; // Blue
+        else if (s.includes('ffff00')) dxfColor = 2; // Yellow
+      }
 
-      if (type === 'Point') {
-        const { x, y } = convertCoordinate(coords[1], coords[0], projection, centralMeridian);
-        d.drawPoint(x, y);
-        // Yazı ekleme
-        d.drawText(x + 0.5, y + 0.5, 1.5, 0, name);
-        featuresCount++;
-      } else if (type === 'LineString') {
-        const points = coords.map((c: any) => {
-          const { x, y } = convertCoordinate(c[1], c[0], projection, centralMeridian);
-          return [x, y];
-        });
-        d.drawPolyline(points, false);
-        featuresCount++;
-      } else if (type === 'Polygon') {
-        // Multi-ring polygons not fully handled for simplicity
-        const points = coords[0].map((c: any) => {
-          const { x, y } = convertCoordinate(c[1], c[0], projection, centralMeridian);
-          return [x, y];
-        });
-        d.drawPolyline(points, true);
-        featuresCount++;
-      } else if (type === 'MultiLineString') {
-        coords.forEach((line: any) => {
-          const points = line.map((c: any) => {
+      // Ensure layer exists and is active
+      try { 
+        d.addLayer(folder, dxfColor, 'CONTINUOUS'); 
+      } catch(e) {
+        // Layer might already exist
+      }
+      d.setActiveLayer(folder);
+
+      const drawGeom = (gType: string, gCoords: any) => {
+        if (gType === 'Point') {
+          const { x, y } = convertCoordinate(gCoords[1], gCoords[0], projection, centralMeridian);
+          d.drawPoint(x, y);
+          if (name) d.drawText(x + 0.2, y + 0.2, 1.2, 0, name);
+        } else if (gType === 'LineString') {
+          if (gCoords.length < 2) return;
+          const points = gCoords.map((c: any) => {
             const { x, y } = convertCoordinate(c[1], c[0], projection, centralMeridian);
             return [x, y];
           });
           d.drawPolyline(points, false);
+        } else if (gType === 'Polygon') {
+          if (gCoords.length === 0 || gCoords[0].length < 3) return;
+          const points = gCoords[0].map((c: any) => {
+            const { x, y } = convertCoordinate(c[1], c[0], projection, centralMeridian);
+            return [x, y];
+          });
+          d.drawPolyline(points, true);
+        } else if (gType === 'MultiLineString') {
+          gCoords.forEach((line: any) => drawGeom('LineString', line));
+        } else if (gType === 'MultiPolygon') {
+          gCoords.forEach((poly: any) => drawGeom('Polygon', poly));
+        } else if (gType === 'MultiPoint') {
+          gCoords.forEach((pt: any) => drawGeom('Point', pt));
+        }
+      };
+
+      if (type === 'GeometryCollection') {
+        feature.geometry.geometries.forEach((g: any) => {
+          drawGeom(g.type, g.coordinates);
         });
-        featuresCount++;
+      } else {
+        drawGeom(type, coords);
       }
+    };
+
+    let featuresCount = 0;
+    geojson.features.forEach((feature: any) => {
+        processFeature(feature);
+        featuresCount++;
     });
 
     if (featuresCount === 0) throw new Error('Dönüştürülecek geçerli obje bulunamadı.');
@@ -147,72 +178,116 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
     setStatus('KML dosyası oluşturuluyor...');
     const features: any[] = [];
     
-    // We need a reference point to guess the DOM if not specified, 
-    // but usually users in Turkey use 3-degree or UTM. 
-    // This is tricky for DXF because it has no metadata for projection.
-    
-    const processEntities = (entities: any[]) => {
+    const processEntities = (entities: any[], transform?: { x: number, y: number, scaleX: number, scaleY: number, rotation: number }) => {
       entities.forEach(ent => {
+        let x = 0, y = 0;
+        
+        const applyTransform = (px: number, py: number) => {
+            let tx = px, ty = py;
+            if (transform) {
+                // Scale
+                tx *= transform.scaleX;
+                ty *= transform.scaleY;
+                // Rotate
+                const rad = transform.rotation * Math.PI / 180;
+                const rx = tx * Math.cos(rad) - ty * Math.sin(rad);
+                const ry = tx * Math.sin(rad) + ty * Math.cos(rad);
+                // Translate
+                tx = rx + transform.x;
+                ty = ry + transform.y;
+            }
+            return { x: tx, y: ty };
+        };
+
         if (ent.type === 'POINT') {
-          const { lat, lng } = convertToWGS84(ent.position.x, ent.position.y, projection, centralMeridian);
+          const pt = applyTransform(ent.position.x, ent.position.y);
+          const { lat, lng } = convertToWGS84(pt.x, pt.y, projection, centralMeridian);
           features.push({
             type: 'Feature',
             geometry: { type: 'Point', coordinates: [lng, lat] },
-            properties: { name: ent.name || 'Nokta' }
+            properties: { name: ent.name || 'Nokta', layer: ent.layer }
           });
         } else if (ent.type === 'LINE') {
-          const p1 = convertToWGS84(ent.vertices[0].x, ent.vertices[0].y, projection, centralMeridian);
-          const p2 = convertToWGS84(ent.vertices[1].x, ent.vertices[1].y, projection, centralMeridian);
+          const pt1 = applyTransform(ent.vertices[0].x, ent.vertices[0].y);
+          const pt2 = applyTransform(ent.vertices[1].x, ent.vertices[1].y);
+          const p1 = convertToWGS84(pt1.x, pt1.y, projection, centralMeridian);
+          const p2 = convertToWGS84(pt2.x, pt2.y, projection, centralMeridian);
           features.push({
             type: 'Feature',
             geometry: { type: 'LineString', coordinates: [[p1.lng, p1.lat], [p2.lng, p2.lat]] },
-            properties: { name: 'Çizgi' }
+            properties: { name: 'Çizgi', layer: ent.layer }
           });
         } else if (ent.type === 'LWPOLYLINE' || ent.type === 'POLYLINE') {
           const coords = ent.vertices.map((v: any) => {
-            const p = convertToWGS84(v.x, v.y, projection, centralMeridian);
+            const pt = applyTransform(v.x, v.y);
+            const p = convertToWGS84(pt.x, pt.y, projection, centralMeridian);
             return [p.lng, p.lat];
           });
+          if (coords.length < 2) return;
           const isClosed = ent.shape || ent.closed;
           if (isClosed) {
             coords.push(coords[0]);
             features.push({
               type: 'Feature',
               geometry: { type: 'Polygon', coordinates: [coords] },
-              properties: { name: 'Alan' }
+              properties: { name: 'Alan', layer: ent.layer }
             });
           } else {
             features.push({
               type: 'Feature',
               geometry: { type: 'LineString', coordinates: coords },
-              properties: { name: 'Çizgi' }
+              properties: { name: 'Çizgi', layer: ent.layer }
             });
           }
-        } else if (ent.type === 'CIRCLE') {
-            // Circle to polygon approx
+        } else if (ent.type === 'CIRCLE' || ent.type === 'ARC') {
             const center = ent.center;
             const radius = ent.radius;
+            const startAngle = ent.startAngle || 0;
+            const endAngle = ent.type === 'CIRCLE' ? 360 : ent.endAngle;
+            
             const points = [];
-            for (let i = 0; i <= 360; i += 10) {
-                const rad = i * Math.PI / 180;
-                const p = convertToWGS84(center.x + radius * Math.cos(rad), center.y + radius * Math.sin(rad), projection, centralMeridian);
+            // Arcs might cross 0, simplify logic:
+            let sweep = endAngle - startAngle;
+            if (sweep < 0) sweep += 360;
+            
+            const steps = Math.max(12, Math.floor(sweep / 5));
+            for (let i = 0; i <= steps; i++) {
+                const angle = startAngle + (sweep * i / steps);
+                const rad = angle * Math.PI / 180;
+                const pt = applyTransform(center.x + radius * Math.cos(rad), center.y + radius * Math.sin(rad));
+                const p = convertToWGS84(pt.x, pt.y, projection, centralMeridian);
                 points.push([p.lng, p.lat]);
             }
-            features.push({
-                type: 'Feature',
-                geometry: { type: 'Polygon', coordinates: [points] },
-                properties: { name: 'Daire' }
-            });
+
+            if (ent.type === 'CIRCLE') {
+                features.push({
+                    type: 'Feature',
+                    geometry: { type: 'Polygon', coordinates: [points] },
+                    properties: { name: 'Daire', layer: ent.layer }
+                });
+            } else {
+                features.push({
+                    type: 'Feature',
+                    geometry: { type: 'LineString', coordinates: points },
+                    properties: { name: 'Yay', layer: ent.layer }
+                });
+            }
+        } else if (ent.type === 'INSERT') {
+            const block = dxf.blocks[ent.name];
+            if (block && block.entities) {
+                processEntities(block.entities, {
+                    x: ent.position.x,
+                    y: ent.position.y,
+                    scaleX: ent.scaleX || 1,
+                    scaleY: ent.scaleY || 1,
+                    rotation: ent.rotation || 0
+                });
+            }
         }
       });
     };
 
     if (dxf.entities) processEntities(dxf.entities);
-    if (dxf.blocks) {
-        Object.values(dxf.blocks).forEach((block: any) => {
-            if (block.entities) processEntities(block.entities);
-        });
-    }
 
     if (features.length === 0) throw new Error('İçe aktarılacak geçerli obje bulunamadı.');
 
