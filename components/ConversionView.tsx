@@ -178,6 +178,8 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
     setStatus('KML dosyası oluşturuluyor...');
     
     // ACI (AutoCAD Color Index) to HEX map (Expanded 1-255)
+    // AutoCAD Color Index is a legacy color system.
+    // We map the first 7 colors to standard KML-friendly hex values.
     const aciToHex = (index: number) => {
       const basicColors: Record<number, string> = {
         1: '#ff0000', // Red
@@ -186,7 +188,7 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
         4: '#00ffff', // Cyan
         5: '#0000ff', // Blue
         6: '#ff00ff', // Magenta
-        7: '#ffffff', // White
+        7: '#000000', // White/Black - Using Black for better visibility in typical KML viewers
         8: '#808080', // Dark Gray
         9: '#c0c0c0', // Light Gray
         250: '#333333', 251: '#555555', 252: '#777777', 253: '#999999', 254: '#bbbbbb', 255: '#ffffff'
@@ -285,9 +287,8 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
                 properties: { 
                   name: ent.text || ent.value || (ent.type === 'POINT' ? 'Nokta' : 'Yazı'), 
                   layer: ent.layer,
-                  type: ent.type,
                   'marker-color': hexColor,
-                  stroke: hexColor
+                  'marker-size': 'medium'
                 }
               });
             }
@@ -461,8 +462,9 @@ const ConversionView: React.FC<Props> = ({ onBack }) => {
     if (features.length === 0) throw new Error('İçe aktarılacak geçerli obje bulunamadı.');
 
     const geojson = { type: 'FeatureCollection', features };
+    // Using 'tokml' library (with 'simplestyle' support) and 'dxf-parser' for conversion.
     const kml = tokml(geojson, {
-      simpleStyle: true,
+      simplestyle: true,
       name: 'name',
       description: 'description'
     });
